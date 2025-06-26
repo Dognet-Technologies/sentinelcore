@@ -1,4 +1,5 @@
 # Descrizione del Server - Sentinel Core
+![Screenshot_dash](https://github.com/user-attachments/assets/ad44f731-de3f-4e23-9c53-9023f74de136)
 LEGGERE ATTENTAMENTE:
 I sorgenti sono disponibili ma il sistema non è stabile, allo stato attuale se compili il backend in rust ci sono ancora errori da risolvere.
 Il sistema ad ora è instabile, ma se vuoi questo può essere già un ottimo punto di partenza dal quale partire.
@@ -6,6 +7,8 @@ Il sistema ad ora è instabile, ma se vuoi questo può essere già un ottimo pun
 ## Architettura del Sistema
 
 Il server **Sentinel Core** è un sistema di gestione vulnerabilità enterprise-grade sviluppato in **Rust** con database **PostgreSQL**, progettato per automatizzare il processo di vulnerability management e remediation coordination.
+
+![Screenshot_vulns](https://github.com/user-attachments/assets/afa271c4-2325-4def-aa50-b0d5808de6c1)
 
 ## Flusso Operativo
 
