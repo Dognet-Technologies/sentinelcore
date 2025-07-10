@@ -23,3 +23,7 @@ Thumbs.db
 .env
 # Sublime Text
 *.sublime-*
+
+# External
+init-vuln-db/
+frontend/
