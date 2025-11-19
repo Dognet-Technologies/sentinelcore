@@ -13,7 +13,7 @@ echo ""
 # 📋 VERSIONI RICHIESTE
 # ============================================
 RUST_VERSION="1.75.0"        # Rust 2021 edition (minimo 1.56, raccomandato 1.75+)
-NODE_VERSION="18.x"           # Node.js 18 LTS (supporta React 18)
+NODE_VERSION="20"             # Node.js 20 LTS (supporta React 18, npm 10+)
 POSTGRES_VERSION="14"         # PostgreSQL 14+ (supporto completo INET types)
 
 echo "📦 Versioni da installare:"
@@ -69,25 +69,28 @@ if command -v node &> /dev/null; then
 
     # Verifica se è la versione corretta
     NODE_MAJOR=$(node --version | cut -d'.' -f1 | sed 's/v//')
-    if [ "$NODE_MAJOR" -lt 18 ]; then
-        echo "⚠️  Versione Node.js troppo vecchia (richiesta: 18+)"
+    if [ "$NODE_MAJOR" -lt 20 ]; then
+        echo "⚠️  Versione Node.js troppo vecchia (richiesta: 20+)"
         echo "   Aggiornamento in corso..."
 
         # Aggiungi repository NodeSource
-        curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION} | sudo -E bash -
+        curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -
         sudo apt-get install -y nodejs
     fi
 else
     echo "📥 Download e installazione Node.js ${NODE_VERSION}..."
 
-    # Installa Node.js 18 LTS
-    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION} | sudo -E bash -
+    # Installa Node.js 20 LTS
+    curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -
     sudo apt-get install -y nodejs
 fi
 
-# Aggiorna npm all'ultima versione
-echo "📦 Aggiornamento npm..."
-sudo npm install -g npm@latest
+# Verifica versione npm (Node 20 include npm 10.x)
+NPM_MAJOR=$(npm --version | cut -d'.' -f1)
+if [ "$NPM_MAJOR" -lt 9 ]; then
+    echo "📦 Aggiornamento npm a versione compatibile..."
+    sudo npm install -g npm@10
+fi
 
 echo ""
 echo "✅ Node.js: $(node --version)"
@@ -286,6 +289,7 @@ echo "   • Tokio 1.28 (async runtime)"
 echo "   • Argon2 0.5 (password hashing)"
 echo ""
 echo "📚 Dipendenze Frontend (React):"
+echo "   • Node.js 20 LTS"
 echo "   • React 18.2.0"
 echo "   • TypeScript 4.9.5"
 echo "   • Material-UI 5.17"
