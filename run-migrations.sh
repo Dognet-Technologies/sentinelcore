@@ -9,25 +9,31 @@ echo "🔄 Esecuzione migrations per Sentinel Core..."
 echo ""
 
 # Migration 001: Schema iniziale
-echo "📊 [1/4] Esecuzione 001_initial_schema.sql..."
+echo "📊 [1/5] Esecuzione 001_initial_schema.sql..."
 psql "$DB_URL" -f vulnerability-manager/migrations/001_initial_schema.sql
 echo "✅ Migration 001 completata"
 echo ""
 
-# Migration 002: Conversione INET
-echo "📊 [2/4] Esecuzione 002_initial_schema.sql (INET conversion)..."
-psql "$DB_URL" -f vulnerability-manager/migrations/002_initial_schema.sql
+# Migration 002: User Features & Security
+echo "📊 [2/5] Esecuzione 002_add_user_features.sql (User Features)..."
+psql "$DB_URL" -f vulnerability-manager/migrations/002_add_user_features.sql
 echo "✅ Migration 002 completata"
 echo ""
 
-# Migration 003: Network Topology (NUOVA!)
-echo "📊 [3/4] Esecuzione 003_network_topology.sql (Network Scan)..."
+# Migration 003: Network Topology
+echo "📊 [3/5] Esecuzione 003_network_topology.sql (Network Scan)..."
 psql "$DB_URL" -f vulnerability-manager/migrations/003_network_topology.sql
 echo "✅ Migration 003 completata"
 echo ""
 
+# Migration 004: Convert IP to INET
+echo "📊 [4/5] Esecuzione 004_convert_to_inet.sql (INET conversion)..."
+psql "$DB_URL" -f vulnerability-manager/migrations/004_convert_to_inet.sql
+echo "✅ Migration 004 completata"
+echo ""
+
 # Seed data (opzionale)
-echo "📊 [4/4] Caricamento dati di test (seed_data.sql)..."
+echo "📊 [5/5] Caricamento dati di test (seed_data.sql)..."
 psql "$DB_URL" -f vulnerability-manager/migrations/seed_data.sql
 echo "✅ Seed data caricati"
 echo ""
