@@ -22,8 +22,8 @@
 
 | Componente | Versione | Note |
 |------------|----------|------|
-| **Node.js** | 18.x LTS | Minimo 16.x |
-| **npm** | 9+ | Package manager |
+| **Node.js** | 20.x LTS | Minimo 18.x, raccomandato 20+ |
+| **npm** | 10+ | Incluso con Node.js 20 |
 | **React** | 18.2.0 | UI library |
 | **TypeScript** | 4.9.5 | Type safety |
 | **Material-UI** | 5.17 | Component library |
@@ -85,33 +85,31 @@ rustc --version  # Dovrebbe essere 1.75+
 rustup component add rustfmt clippy
 ```
 
-#### 2. Installa Node.js 18 LTS
+#### 2. Installa Node.js 20 LTS
 
 **Ubuntu/Debian/Parrot:**
 ```bash
 # Aggiungi repository NodeSource
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 
 # Installa Node.js
 sudo apt-get install -y nodejs
 
-# Aggiorna npm
-sudo npm install -g npm@latest
-
-# Verifica versioni
-node --version   # Dovrebbe essere v18.x
-npm --version    # Dovrebbe essere 9+
+# Verifica versioni (Node 20 include npm 10)
+node --version   # Dovrebbe essere v20.x
+npm --version    # Dovrebbe essere 10.x
 ```
 
 **macOS:**
 ```bash
 # Usa Homebrew
-brew install node@18
+brew install node@20
 
-# Oppure usa nvm
+# Oppure usa nvm (raccomandato)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-nvm install 18
-nvm use 18
+nvm install 20
+nvm use 20
+nvm alias default 20
 ```
 
 **Windows:**
@@ -242,10 +240,10 @@ cargo --version
 
 # Node.js
 node --version
-# Output atteso: v18.x.x
+# Output atteso: v20.x.x
 
 npm --version
-# Output atteso: 9.x.x o superiore
+# Output atteso: 10.x.x
 
 # PostgreSQL
 psql --version
@@ -335,13 +333,30 @@ echo 'source $HOME/.cargo/env' >> ~/.bashrc
 ### Problema: Node.js versione sbagliata
 
 ```bash
-# Usa nvm per gestire versioni Node.js
+# Usa nvm per gestire versioni Node.js (raccomandato)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc
 
-nvm install 18
-nvm use 18
-nvm alias default 18
+nvm install 20
+nvm use 20
+nvm alias default 20
+```
+
+### Problema: npm EBADENGINE (incompatibilità versione)
+
+Se vedi `npm error engine Not compatible`:
+
+```bash
+# Soluzione 1: Usa Node.js 20 LTS
+nvm install 20
+nvm use 20
+
+# Soluzione 2: Usa npm 10.x con Node.js 20
+npm install -g npm@10
+
+# Verifica
+node --version  # Dovrebbe essere v20.x
+npm --version   # Dovrebbe essere 10.x
 ```
 
 ### Problema: Errori compilazione SQLx
@@ -388,8 +403,8 @@ Usa questa checklist per verificare l'installazione:
 
 - [ ] Rust 1.75+ installato (`rustc --version`)
 - [ ] Cargo funzionante (`cargo --version`)
-- [ ] Node.js 18+ installato (`node --version`)
-- [ ] npm 9+ installato (`npm --version`)
+- [ ] Node.js 20+ installato (`node --version`)
+- [ ] npm 10+ installato (`npm --version`)
 - [ ] PostgreSQL 14+ installato (`psql --version`)
 - [ ] Database `vulnerability_manager` creato
 - [ ] Utente `vlnman` creato con password `DogNET`
