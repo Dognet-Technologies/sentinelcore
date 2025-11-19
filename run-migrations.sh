@@ -9,31 +9,37 @@ echo "🔄 Esecuzione migrations per Sentinel Core..."
 echo ""
 
 # Migration 001: Schema iniziale
-echo "📊 [1/5] Esecuzione 001_initial_schema.sql..."
+echo "📊 [1/6] Esecuzione 001_initial_schema.sql..."
 psql "$DB_URL" -f vulnerability-manager/migrations/001_initial_schema.sql
 echo "✅ Migration 001 completata"
 echo ""
 
 # Migration 002: User Features & Security
-echo "📊 [2/5] Esecuzione 002_add_user_features.sql (User Features)..."
+echo "📊 [2/6] Esecuzione 002_add_user_features.sql (User Features)..."
 psql "$DB_URL" -f vulnerability-manager/migrations/002_add_user_features.sql
 echo "✅ Migration 002 completata"
 echo ""
 
 # Migration 003: Network Topology
-echo "📊 [3/5] Esecuzione 003_network_topology.sql (Network Scan)..."
+echo "📊 [3/6] Esecuzione 003_network_topology.sql (Network Scan)..."
 psql "$DB_URL" -f vulnerability-manager/migrations/003_network_topology.sql
 echo "✅ Migration 003 completata"
 echo ""
 
 # Migration 004: Convert IP to INET
-echo "📊 [4/5] Esecuzione 004_convert_to_inet.sql (INET conversion)..."
+echo "📊 [4/6] Esecuzione 004_convert_to_inet.sql (INET conversion)..."
 psql "$DB_URL" -f vulnerability-manager/migrations/004_convert_to_inet.sql
 echo "✅ Migration 004 completata"
 echo ""
 
+# Migration 005: Add Missing Columns
+echo "📊 [5/6] Esecuzione 005_add_missing_columns.sql (Missing columns)..."
+psql "$DB_URL" -f vulnerability-manager/migrations/005_add_missing_columns.sql
+echo "✅ Migration 005 completata"
+echo ""
+
 # Seed data (opzionale)
-echo "📊 [5/5] Caricamento dati di test (seed_data.sql)..."
+echo "📊 [6/6] Caricamento dati di test (seed_data.sql)..."
 psql "$DB_URL" -f vulnerability-manager/migrations/seed_data.sql
 echo "✅ Seed data caricati"
 echo ""
