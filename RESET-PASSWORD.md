@@ -67,6 +67,9 @@ Poi copia l'hash nell'UPDATE SQL:
 UPDATE users
 SET password_hash = '$argon2id$v=19$...'
 WHERE username = 'admin';
+
+
+
 ```
 
 ---
@@ -81,6 +84,13 @@ Se hai eseguito il seed_data.sql, questi sono gli utenti esistenti:
 | team_leader  | leader@sentinel.local  | Team Leader  | teamleader123    |
 | user1        | user1@sentinel.local   | User         | user123          |
 
+-- SQL to update user passwords with correct hashes
+
+```
+UPDATE users SET password_hash = '$argon2id$v=19$m=19456,t=2,p=1$qPgwt+f6PoiSjki3oyHbEQ$Q5l4ALfhOJL8vSDIJ1JQiu9Ip4saKSBQjHzSIdlY0o4' WHERE username = 'admin';
+UPDATE users SET password_hash = '$argon2id$v=19$m=19456,t=2,p=1$vVYGyzgBV2JiQbYNP69RcA$PPHf6VmUvUC76gclrUNmn4d4GQV0stwKvoTN7T9Nb8s' WHERE username = 'team_leader';
+UPDATE users SET password_hash = '$argon2id$v=19$m=19456,t=2,p=1$J4oAMZxQi2VBa9hnnbDRUA$7mv0eemEwTIRZk8D5h73XOlYCHpal9Y6RLeOvcDur30' WHERE username = 'user1';
+```
 ---
 
 ## ❓ Problemi?
