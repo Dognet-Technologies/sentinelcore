@@ -3,11 +3,9 @@
 
 set -e
 
-<<<<<<< HEAD
-cd "$(dirname "$0")/sentinelcore/vulnerability-manager"
-=======
-cd "$(dirname "$0")/vulnerability-manager"
->>>>>>> ef5bd9490ba8ebe970c3c0eaf0486e18b7f619e2
+cd "/home/simone/Repos/Progetti/sentinelcore/vulnerability-manager"
+#=======
+cd "/home/simone/Repos/Progetti/sentinelcore/vulnerability-manager"
 
 echo "🚀 Avvio Sentinel Core Backend..."
 echo ""
