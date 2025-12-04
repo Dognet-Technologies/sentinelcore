@@ -37,40 +37,52 @@ Complete guide for deploying SentinelCore in production environments.
 
 ### 1. Clone Repository
 
-\`\`\`bash
+```bash
 git clone https://github.com/Dognet-Technologies/sentinelcore.git
 cd sentinelcore
-\`\`\`
+```
 
 ### 2. Configure Environment
 
-\`\`\`bash
+```bash
 cp .env.production.example .env
-\`\`\`
+```
 
-Edit \`.env\` and set:
+Edit `.env` and set **CRITICAL** secrets:
 
-\`\`\`bash
-# Database
-DATABASE_URL=postgresql://sentinelcore:CHANGE_ME@db:5432/sentinelcore
-DB_PASSWORD=CHANGE_ME
+```bash
+# Generate strong password
+openssl rand -base64 32
 
-# JWT Secret (generate with: openssl rand -base64 64)
-JWT_SECRET=CHANGE_ME_GENERATE_RANDOM_SECRET
+# Generate JWT secret
+openssl rand -base64 64
+```
 
-# CORS
-CORS_ORIGINS=https://your-domain.com
+Update `.env`:
+
+```bash
+# Database (matches docker-compose.yml)
+DATABASE_URL=postgresql://vlnman:YOUR_STRONG_PASSWORD@database:5432/vulnerability_manager
+DB_PASSWORD=YOUR_STRONG_PASSWORD
+
+# JWT Secret - MUST BE CHANGED
+JWT_SECRET=YOUR_GENERATED_SECRET_AT_LEAST_64_CHARS
+
+# CORS - Your frontend URL
+VULN_SECURITY_CORS_ALLOWED_ORIGINS=https://your-domain.com
 
 # Optional: Email notifications
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your-email@gmail.com
 SMTP_PASSWORD=your-app-password
-\`\`\`
+```
+
+**⚠️ NEVER use default passwords in production!**
 
 ### 3. Start Services
 
-\`\`\`bash
+```bash
 # Build and start all services
 docker-compose up -d
 
@@ -79,31 +91,46 @@ docker-compose logs -f
 
 # Check status
 docker-compose ps
-\`\`\`
+```
 
 ### 4. Initialize Database
 
-\`\`\`bash
-# Run migrations
-docker-compose exec backend ./scripts/migrations.sh
+The database will be initialized automatically on first start with migrations in `vulnerability-manager/migrations/`.
 
-# (Optional) Load test data
-docker-compose exec backend ./scripts/populate-database.sh
-\`\`\`
+To verify:
+
+```bash
+# Check database is ready
+docker-compose exec database psql -U vlnman -d vulnerability_manager -c "SELECT COUNT(*) FROM users;"
+```
 
 ### 5. Access Application
 
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:8080
+- **Metrics:** http://localhost:9090
 - **Default Login:** admin / DogNET2024!
 
-**⚠️ Change default password immediately!**
+**⚠️ Change default password immediately after first login!**
+
+### 6. Change Default Password
+
+```bash
+# Use the provided script
+./scripts/change-password.sh admin
+
+# Or via API
+curl -X PUT http://localhost:8080/api/users/me/password \
+  -H "Content-Type: application/json" \
+  -H "Cookie: auth_token=YOUR_TOKEN" \
+  -d '{"current_password":"DogNET2024!","new_password":"YourNewSecurePassword123!"}'
+```
 
 ## Manual Deployment
 
 ### 1. Install PostgreSQL
 
-\`\`\`bash
+```bash
 # Ubuntu/Debian
 sudo apt update
 sudo apt install postgresql-14 postgresql-client-14
@@ -111,23 +138,23 @@ sudo apt install postgresql-14 postgresql-client-14
 # Start service
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
-\`\`\`
+```
 
 ### 2. Create Database
 
-\`\`\`bash
+```bash
 sudo -u postgres psql
 
-CREATE DATABASE sentinelcore;
-CREATE USER sentinelcore WITH ENCRYPTED PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE sentinelcore TO sentinelcore;
-ALTER DATABASE sentinelcore OWNER TO sentinelcore;
+CREATE DATABASE vulnerability_manager;
+CREATE USER vlnman WITH ENCRYPTED PASSWORD 'your_secure_password';
+GRANT ALL PRIVILEGES ON DATABASE vulnerability_manager TO vlnman;
+ALTER DATABASE vulnerability_manager OWNER TO vlnman;
 \q
-\`\`\`
+```
 
 ### 3. Build Backend
 
-\`\`\`bash
+```bash
 cd vulnerability-manager
 
 # Install Rust
@@ -139,23 +166,23 @@ cargo build --release
 
 # Copy binary
 sudo cp target/release/vulnerability-manager /usr/local/bin/
-\`\`\`
+```
 
 ### 4. Configure Backend
 
-Create \`/etc/sentinelcore/config.yaml\`:
+Create `/etc/sentinelcore/config.yaml`:
 
-\`\`\`yaml
+```yaml
 server:
   host: "0.0.0.0"
   port: 8080
 
 database:
-  url: "postgresql://sentinelcore:password@localhost/sentinelcore"
+  url: "postgresql://vlnman:password@localhost/vulnerability_manager"
   max_connections: 20
 
 auth:
-  secret_key: "YOUR_JWT_SECRET"
+  secret_key: "YOUR_JWT_SECRET_64_CHARS_MINIMUM"
   token_expiration_hours: 24
 
 security:
@@ -163,16 +190,43 @@ security:
     enabled: true
     allowed_origins:
       - "https://your-domain.com"
+  cookies:
+    secure: true
+    http_only: true
+    same_site: "Strict"
+    domain: "your-domain.com"
   rate_limit:
     enabled: true
     requests_per_minute: 60
-\`\`\`
+    burst_size: 100
+  headers:
+    hsts_max_age_seconds: 31536000
+    hsts_include_subdomains: true
+    hsts_preload: true
+    frame_options: "DENY"
+    content_type_options: "nosniff"
+    xss_protection: "1; mode=block"
+    referrer_policy: "strict-origin-when-cross-origin"
+    csp: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+```
 
-### 5. Create Systemd Service
+### 5. Run Migrations
 
-Create \`/etc/systemd/system/sentinelcore.service\`:
+```bash
+cd vulnerability-manager
 
-\`\`\`ini
+# Set DATABASE_URL
+export DATABASE_URL="postgresql://vlnman:password@localhost/vulnerability_manager"
+
+# Run migrations using the script
+../scripts/migrations.sh
+```
+
+### 6. Create Systemd Service
+
+Create `/etc/systemd/system/sentinelcore.service`:
+
+```ini
 [Unit]
 Description=SentinelCore Vulnerability Management
 After=network.target postgresql.service
@@ -180,34 +234,58 @@ After=network.target postgresql.service
 [Service]
 Type=simple
 User=sentinelcore
+Group=sentinelcore
 WorkingDirectory=/opt/sentinelcore
 Environment="CONFIG_PATH=/etc/sentinelcore/config.yaml"
-Environment="DATABASE_URL=postgresql://sentinelcore:password@localhost/sentinelcore"
+Environment="DATABASE_URL=postgresql://vlnman:password@localhost/vulnerability_manager"
 ExecStart=/usr/local/bin/vulnerability-manager
 Restart=on-failure
 RestartSec=10
 
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/sentinelcore
+ReadWritePaths=/var/log/sentinelcore
+
 [Install]
 WantedBy=multi-user.target
-\`\`\`
+```
 
 Start service:
 
-\`\`\`bash
+```bash
+# Create user
+sudo useradd -r -s /bin/false sentinelcore
+
+# Create directories
+sudo mkdir -p /opt/sentinelcore
+sudo mkdir -p /var/lib/sentinelcore
+sudo mkdir -p /var/log/sentinelcore
+sudo chown -R sentinelcore:sentinelcore /opt/sentinelcore /var/lib/sentinelcore /var/log/sentinelcore
+
+# Enable and start
 sudo systemctl daemon-reload
 sudo systemctl enable sentinelcore
 sudo systemctl start sentinelcore
 sudo systemctl status sentinelcore
-\`\`\`
+```
 
-### 6. Build Frontend
+### 7. Build Frontend
 
-\`\`\`bash
+```bash
 cd vulnerability-manager-frontend
 
-# Install Node.js
+# Install Node.js (if not installed)
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
+
+# Configure API endpoint
+cat > .env.production << EOF
+REACT_APP_API_URL=https://your-domain.com/api
+EOF
 
 # Build
 npm install
@@ -215,182 +293,284 @@ npm run build
 
 # Deploy to Nginx
 sudo cp -r build/* /var/www/sentinelcore/
-\`\`\`
+```
 
-### 7. Configure Nginx
+## Configuration
 
-Create \`/etc/nginx/sites-available/sentinelcore\`:
+### Environment Variables
 
-\`\`\`nginx
+Key environment variables for production:
+
+```bash
+# Database
+DATABASE_URL=postgresql://vlnman:PASSWORD@localhost:5432/vulnerability_manager
+VULN_DATABASE_MAX_CONNECTIONS=20
+
+# Authentication
+JWT_SECRET=your_64_char_secret
+
+# Server
+VULN_SERVER_HOST=0.0.0.0
+VULN_SERVER_PORT=8080
+VULN_SERVER_ENABLE_TLS=true
+
+# Security
+VULN_SECURITY_CORS_ALLOWED_ORIGINS=https://your-domain.com
+VULN_SECURITY_RATE_LIMIT_ENABLED=true
+VULN_SECURITY_RATE_LIMIT_REQUESTS_PER_MINUTE=60
+
+# Logging
+RUST_LOG=info
+VULN_LOG_LEVEL=info
+VULN_LOG_FORMAT=json
+
+# Application
+APP_ENV=production
+```
+
+### Security Configuration
+
+See [SECURITY.md](SECURITY.md) for detailed security hardening instructions including:
+- TLS/SSL setup
+- Security headers configuration
+- CORS whitelist
+- Rate limiting tuning
+- Cookie security settings
+
+## Reverse Proxy
+
+### Nginx Configuration
+
+Create `/etc/nginx/sites-available/sentinelcore`:
+
+```nginx
+upstream backend {
+    server localhost:8080;
+    keepalive 64;
+}
+
+upstream frontend {
+    server localhost:3000;
+    keepalive 64;
+}
+
+# Redirect HTTP to HTTPS
 server {
     listen 80;
     server_name your-domain.com;
     return 301 https://$server_name$request_uri;
 }
 
+# HTTPS Server
 server {
     listen 443 ssl http2;
     server_name your-domain.com;
 
+    # SSL Configuration
     ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-    
-    # Frontend
-    location / {
-        root /var/www/sentinelcore;
-        try_files $uri $uri/ /index.html;
-    }
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
 
-    # Backend API
+    # Security Headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # API Backend
     location /api/ {
-        proxy_pass http://127.0.0.1:8080;
+        proxy_pass http://backend/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Frontend
+    location / {
+        proxy_pass http://frontend/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Metrics (restrict access)
+    location /metrics {
+        proxy_pass http://localhost:9090/metrics;
+        allow 10.0.0.0/8;  # Internal network
+        deny all;
     }
 }
-\`\`\`
+```
 
-Enable site:
+Enable the site:
 
-\`\`\`bash
+```bash
 sudo ln -s /etc/nginx/sites-available/sentinelcore /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
-\`\`\`
+```
 
-## Database Setup
+### SSL/TLS with Let's Encrypt
 
-### Run Migrations
+```bash
+# Install Certbot
+sudo apt install certbot python3-certbot-nginx
 
-\`\`\`bash
-cd vulnerability-manager
-./scripts/migrations.sh
-\`\`\`
+# Obtain certificate
+sudo certbot --nginx -d your-domain.com
 
-### Backup Database
-
-\`\`\`bash
-# Backup
-pg_dump -U sentinelcore sentinelcore > backup_$(date +%Y%m%d).sql
-
-# Restore
-psql -U sentinelcore sentinelcore < backup_20240101.sql
-\`\`\`
-
-## Configuration
-
-See [SECURITY.md](SECURITY.md) for security-specific configuration.
-
-### Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| DATABASE_URL | PostgreSQL connection string | - | Yes |
-| JWT_SECRET | JWT signing secret | - | Yes |
-| CORS_ORIGINS | Allowed CORS origins | * | Production |
-| SMTP_HOST | SMTP server for emails | - | No |
-| LOG_LEVEL | Logging level | info | No |
-
-## Reverse Proxy
-
-SentinelCore should always be behind a reverse proxy (Nginx, Caddy, Traefik) for:
-
-- TLS/SSL termination
-- Load balancing
-- Rate limiting
-- DDoS protection
+# Auto-renewal (already configured by certbot)
+sudo systemctl status certbot.timer
+```
 
 ## Monitoring
 
 ### Health Checks
 
-- **Health:** GET /api/health
-- **Readiness:** GET /api/ready
+```bash
+# Backend health
+curl http://localhost:8080/api/health
 
-### Metrics
+# Frontend health
+curl http://localhost:3000/
 
-Monitor these key metrics:
+# Database health
+docker-compose exec database pg_isready -U vlnman -d vulnerability_manager
+```
 
-- Response time (target: <200ms)
-- Error rate (target: <1%)
-- Database connections
-- Memory usage
-- CPU usage
+### Prometheus Metrics
 
-### Logging
+Metrics are exposed on port 9090:
 
-Logs location:
-- Docker: \`docker-compose logs -f\`
-- Systemd: \`journalctl -u sentinelcore -f\`
-- File: \`/var/log/sentinelcore/app.log\`
+```bash
+curl http://localhost:9090/metrics
+```
+
+### Logs
+
+```bash
+# Docker logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f database
+
+# System logs
+sudo journalctl -u sentinelcore -f
+```
+
+### Container Status
+
+```bash
+# Check all containers
+docker-compose ps
+
+# Check specific service
+docker-compose ps backend
+
+# View resource usage
+docker stats sentinelcore-backend sentinelcore-frontend sentinelcore-db
+```
+
+## Backup and Recovery
+
+### Database Backup
+
+```bash
+# Create backup
+docker-compose exec database pg_dump -U vlnman vulnerability_manager > backup-$(date +%Y%m%d).sql
+
+# Restore from backup
+docker-compose exec -T database psql -U vlnman vulnerability_manager < backup-20240101.sql
+```
+
+### Full Backup
+
+```bash
+# Backup script
+./scripts/backup.sh
+
+# Includes:
+# - Database dump
+# - Uploaded files
+# - Configuration files
+# - Plugin data
+```
 
 ## Troubleshooting
 
-### Backend Won't Start
+### Backend won't start
 
-\`\`\`bash
-# Check database connection
-psql -U sentinelcore -h localhost sentinelcore
-
-# Check configuration
-cat /etc/sentinelcore/config.yaml
-
+```bash
 # Check logs
-journalctl -u sentinelcore -n 100
-\`\`\`
+docker-compose logs backend
 
-### Frontend Can't Connect
+# Common issues:
+# 1. Database not ready - wait for healthcheck
+# 2. JWT_SECRET not set - check .env
+# 3. Port already in use - check netstat -tlnp | grep 8080
+```
 
-1. Check CORS configuration
-2. Verify API endpoint in frontend config
-3. Check network connectivity
-4. Inspect browser console for errors
+### Frontend can't connect to backend
 
-### Database Migration Errors
+```bash
+# Check CORS configuration
+# Verify VULN_SECURITY_CORS_ALLOWED_ORIGINS in .env
 
-\`\`\`bash
-# Check current version
-psql -U sentinelcore sentinelcore -c "SELECT * FROM _sqlx_migrations;"
+# Check network connectivity
+docker-compose exec frontend curl http://backend:8080/api/health
+```
 
-# Rollback if needed
-# Manual intervention required - contact support
-\`\`\`
+### Database connection errors
 
-## Updating
+```bash
+# Verify database is running
+docker-compose ps database
 
-### Docker
+# Check credentials
+docker-compose exec database psql -U vlnman -d vulnerability_manager
 
-\`\`\`bash
-git pull
-docker-compose pull
+# Check DATABASE_URL format
+echo $DATABASE_URL
+```
+
+## Upgrade Procedure
+
+```bash
+# 1. Backup current data
+./scripts/backup.sh
+
+# 2. Pull latest changes
+git pull origin main
+
+# 3. Rebuild containers
+docker-compose down
+docker-compose build --no-cache
 docker-compose up -d
-\`\`\`
 
-### Manual
+# 4. Run migrations (if needed)
+docker-compose exec backend ./migrations.sh
 
-\`\`\`bash
-# Backup first!
-pg_dump -U sentinelcore sentinelcore > backup.sql
-
-# Update code
-git pull
-
-# Build backend
-cd vulnerability-manager
-cargo build --release
-
-# Build frontend
-cd ../vulnerability-manager-frontend
-npm install
-npm run build
-
-# Restart services
-sudo systemctl restart sentinelcore
-sudo systemctl reload nginx
-\`\`\`
+# 5. Verify deployment
+docker-compose ps
+curl http://localhost:8080/api/health
+```
 
 ## Support
 
-For issues, see [GitHub Issues](https://github.com/Dognet-Technologies/sentinelcore/issues).
+- 📖 Documentation: [GitHub Wiki](https://github.com/Dognet-Technologies/sentinelcore/wiki)
+- 🐛 Issues: [GitHub Issues](https://github.com/Dognet-Technologies/sentinelcore/issues)
+- 📧 Email: support@dognet-technologies.com
+
+---
+
+**Made with ❤️ by Dognet Technologies**
