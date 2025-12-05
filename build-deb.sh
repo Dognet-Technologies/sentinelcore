@@ -19,7 +19,22 @@ mkdir -p "${DEB_DIR}"
 # 1. Compila il backend Rust
 echo "📦 Compiling Rust backend..."
 cd vulnerability-manager
+
+# Enable SQLx offline mode with existing query cache
+export SQLX_OFFLINE=true
+
+# Verify .sqlx cache exists
+if [ ! -d ".sqlx" ]; then
+    echo "❌ Error: SQLx query cache (.sqlx/) not found!"
+    echo "Run 'cargo sqlx prepare' first with a PostgreSQL connection"
+    exit 1
+fi
+
+echo "✅ Using SQLx query cache from .sqlx/ directory"
+
+# Build with offline mode
 cargo build --release
+
 cd ..
 
 # 2. Compila il frontend React
