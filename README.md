@@ -1,359 +1,179 @@
-# Descrizione del Server - Sentinel Core
-![Screenshot_dash](https://github.com/user-attachments/assets/ad44f731-de3f-4e23-9c53-9023f74de136)
-LEGGERE ATTENTAMENTE:
-I sorgenti sono disponibili ma il sistema non è stabile, allo stato attuale se compili il backend in rust ci sono ancora errori da risolvere.
-Il sistema ad ora è instabile, ma se vuoi questo può essere già un ottimo punto di partenza dal quale partire.
-
-## Architettura del Sistema
-
-Il server **Sentinel Core** è un sistema di gestione vulnerabilità enterprise-grade sviluppato in **Rust** con database **PostgreSQL**, progettato per automatizzare il processo di vulnerability management e remediation coordination.
-
-![Screenshot_vulns](https://github.com/user-attachments/assets/afa271c4-2325-4def-aa50-b0d5808de6c1)
-
-## Flusso Operativo
-
-### 1. Acquisizione Vulnerabilità
-Il server riceve tramite **API REST** informazioni sulle vulnerabilità da diversi tool di security testing:
-
-**Tool Supportati:**
-- **Nessus** (Tenable)
-- **Nexpose** (Rapid7)
-- **OpenVAS** 
-- **Qualys VMDR**
-- **Burp Suite Enterprise**
-- **Nmap** (con script NSE)
-- **Nikto**
-- **OWASP ZAP**
-- **Acunetix**
-- **Greenbone**
-- **Tool personalizzati** via plugin
-
-### 2. Catalogazione e Analisi
-Le vulnerabilità vengono **catalogate e organizzate** secondo standard internazionali:
-
-**Metriche di Classificazione:**
-- **CVSS Score** (Common Vulnerability Scoring System) - Gravità tecnica
-- **EPSS Score** (Exploit Prediction Scoring System) - Probabilità di exploit
-- **CVE ID** - Identificativo vulnerabilità
-- **CWE ID** - Categoria debolezza
-- **Severity levels**: Critical, High, Medium, Low, Info
-
-**Enrichment Automatico:**
-- Correlazione con database CVE/NVD
-- Mapping asset e servizi
-- Geolocalizzazione IP
-- Identificazione OS e servizi
-- Timeline discovery
-
-### 3. Prioritizzazione Intelligente
-Il sistema implementa un **algoritmo di prioritizzazione** che considera:
-
-**Fattori di Rischio:**
-- **Business Impact** - Criticità asset per business
-- **Exploitability** - Facilità di exploit (EPSS)
-- **Asset Exposure** - Esposizione pubblica/interna
-- **Patch Availability** - Disponibilità fix
-- **Remediation Effort** - Complessità intervento
-
-**Output Prioritizzazione:**
-- **Risk Score composito**
-- **Remediation timeline suggerita**
-- **Effort estimation**
-- **Business impact assessment**
-
-### 4. Reportistica e Dashboards
-Vengono preparati **grafici e dashboard** per diversi stakeholder:
-
-**Dashboard Executive:**
-- Trend vulnerabilità nel tempo
-- Metriche KPI (MTTR, SLA compliance)
-- Risk exposure evolution
-- Team performance metrics
-- Budget impact analysis
-
-**Dashboard Operativo:**
-- Vulnerabilità per team
-- Workload distribution
-- Remediation status
-- Upcoming deadlines
-- Resource allocation
-
-**Report Tecnici:**
-- Dettaglio vulnerabilità
-- Proof of Concept
-- Remediation steps
-- Verification procedures
-- Rollback plans
-
-### 5. Team Assignment e Workflow
-Le **remediation vengono assegnate** ai team competenti:
-
-**Workflow Automatizzato:**
-- **Assignment rules** basate su:
-  - Tipo di asset (Server, Network, Application)
-  - Tecnologia coinvolta (OS, Database, Web)
-  - Competenze team
-  - Carico di lavoro corrente
-  - SLA requirements
-
-**Team Coordination:**
-- **Notification automatiche** (Slack, Telegram, Email)
-- **Task tracking** con scadenze
-- **Progress monitoring**
-- **Escalation automatica** su ritardi
-- **Approval workflow** per cambiamenti critici
-
-### 6. Integrazione SOAR
-Il sistema si integra con piattaforme **SOAR** (Security Orchestration, Automation and Response):
-
-**Integrazioni Supportate:**
-- **Phantom/Splunk SOAR**
-- **Demisto/Cortex XSOAR**
-- **IBM Resilient**
-- **Rapid7 InsightConnect**
-- **Microsoft Sentinel**
-- **Google Chronicle SOAR**
-
-**Automazioni SOAR:**
-- **Ticket creation** automatica (ServiceNow, Jira)
-- **Playbook execution** per remediation standard
-- **Evidence collection** automatica
-- **Compliance reporting**
-- **Incident response** orchestration
-
-## Caratteristiche Tecniche
-
-### Performance
-- **Concurrent processing** di migliaia di vulnerabilità
-- **Real-time updates** via WebSocket
-- **Caching intelligente** per query frequenti
-- **Async processing** per operazioni pesanti
-
-### Scalabilità
-- **Microservices-ready** architecture
-- **Horizontal scaling** supportato
-- **Database sharding** configurabile
-- **Load balancing** integrato
-
-### Sicurezza
-- **Zero-trust** architecture
-- **End-to-end encryption**
-- **Audit logging** completo
-- **RBAC** granulare
-- **OWASP compliance**
-
-### Affidabilità
-- **High availability** (99.9% uptime)
-- **Disaster recovery** automatico
-- **Data backup** continuo
-- **Health monitoring** proattivo
-- **Graceful degradation**
-
-## Plugin Ecosystem
-
-### Plugin Architecture
-Il sistema supporta un **ecosistema di plugin** estensibile:
-
-**Tipi di Plugin:**
-- **Import plugins** - Connettori tool esterni
-- **Export plugins** - Formati export personalizzati
-- **Notification plugins** - Canali notifica custom
-- **Analysis plugins** - Algoritmi analisi custom
-- **Integration plugins** - Connector sistemi terzi
-- **Workflow plugins** - Processi business custom
-
-**Plugin Development:**
-- **SDK completo** per sviluppatori
-- **Sandbox sicuro** per esecuzione
-- **Plugin marketplace** interno
-- **Version management** automatico
-- **A/B testing** per plugin
-
-# Backend - Sentinel Core
-
-## Informazioni sul Backend
-
-- **Database**: **PostgreSQL** (con UUID extension)
-- **Framework**: Axum (Rust) 
-- **API**: REST API con autenticazione JWT
-- **Porta**: 8080 (configurabile)
-
-## Architettura Utenti
-
-Il sistema implementa un sistema di autorizzazione a tre livelli:
-
-1. **Admin** - Accesso completo al sistema
-   - Gestione utenti (CRUD)
-   - Gestione vulnerabilità (CRUD)
-   - Gestione team e membri
-   - Gestione asset e report
-   - Gestione plugin
-   - Configurazione sistema
-
-2. **Team Leader** - Gestione team e vulnerabilità assegnate
-   - Visualizzazione vulnerabilità
-   - Gestione del proprio team
-   - Creazione e gestione report
-   - Accesso ai plugin autorizzati
-
-3. **User** - Accesso base in sola lettura
-   - Visualizzazione vulnerabilità assegnate
-   - Visualizzazione report
-   - Accesso al proprio profilo
-
-## Database PostgreSQL
-
-### Tabelle Principali
-
-- **users** - Gestione utenti con ruoli
-- **teams** - Definizione team di remediation  
-- **team_members** - Membri dei team
-- **vulnerabilities** - Catalogazione vulnerabilità
-- **assets** - Inventario asset IT
-- **reports** - Report di scansione e analisi
-- **plugins** - Sistema plugin estensibile
-- **notifications** - Sistema notifiche multi-canale
-
-### Caratteristiche Database
-
-- **UUID** come chiavi primarie per sicurezza
-- **Enum types** per status e categorie
-- **JSONB** per configurazioni flessibili
-- **Timestamp con timezone** per audit trail
-- **Indici ottimizzati** per performance
-- **Vincoli referenziali** per integrità dati
-
-## Funzionalità Implementate
-
-### Sistema di Vulnerabilità
-- Import da tool esterni (Nessus, OpenVAS, Qualys, Burp, ecc.)
-- Classificazione CVSS/EPSS
-- Stati di remediation (Open, In Progress, Resolved, Closed)
-- Assegnazione automatica ai team
-
-### Sistema di Reporting
-- Grafici e metriche prioritizzate
-- Export multipli formati (XML, JSON, CSV, PDF)
-- Analisi trend temporali
-- Dashboard executive
-
-### Sistema di Notifiche
-- Integrazione Slack/Telegram
-- Email automatiche
-- Webhook personalizzabili
-- Allerte basate su soglie
-
-### Sistema Plugin
-- Plugin community e custom
-- Supporto multi-linguaggio
-- Configurazione dinamica
-- Sandbox sicuro
-
-## Configurazione Database
-
-### Connection String
-```
-postgres://vlnman:DogNET@localhost/vulnerability_manager
-```
-
-### Pool Connections
-- Max connections: 5 (configurabile)
-- Timeout: 30s
-- Idle timeout: 10min
-
-## API Endpoints
-
-### Autenticazione
-- `POST /api/auth/login` - Login utente
-- `GET /api/health` - Health check
-
-### Gestione Utenti (Admin)
-- `GET /api/users` - Lista utenti
-- `POST /api/users` - Crea utente
-- `GET /api/users/:id` - Dettaglio utente
-- `PUT /api/users/:id` - Aggiorna utente
-- `DELETE /api/users/:id` - Elimina utente
-- `GET /api/users/me` - Profilo corrente
-
-### Gestione Vulnerabilità
-- `GET /api/vulnerabilities` - Lista vulnerabilità
-- `POST /api/vulnerabilities` - Crea vulnerabilità
-- `GET /api/vulnerabilities/:id` - Dettaglio vulnerabilità
-- `PUT /api/vulnerabilities/:id` - Aggiorna vulnerabilità
-- `DELETE /api/vulnerabilities/:id` - Elimina vulnerabilità
-- `POST /api/vulnerabilities/:id/assign` - Assegna a team
-
-### Gestione Team
-- `GET /api/teams` - Lista team
-- `POST /api/teams` - Crea team
-- `GET /api/teams/:id` - Dettaglio team
-- `PUT /api/teams/:id` - Aggiorna team
-- `DELETE /api/teams/:id` - Elimina team
-- `GET /api/teams/:id/members` - Membri team
-- `POST /api/teams/:id/members` - Aggiungi membro
-- `DELETE /api/teams/:id/members/:member_id` - Rimuovi membro
-
-### Gestione Asset
-- `GET /api/assets` - Lista asset
-- `POST /api/assets` - Crea asset
-- `GET /api/assets/:id` - Dettaglio asset
-- `PUT /api/assets/:id` - Aggiorna asset
-- `DELETE /api/assets/:id` - Elimina asset
-
-### Gestione Report
-- `GET /api/reports` - Lista report
-- `POST /api/reports` - Crea report
-- `GET /api/reports/:id` - Dettaglio report
-- `PUT /api/reports/:id` - Aggiorna report
-- `DELETE /api/reports/:id` - Elimina report
-- `GET /api/reports/:id/download` - Download report
-
-### Gestione Plugin
-- `GET /api/plugins` - Lista plugin
-- `POST /api/plugins` - Installa plugin
-- `GET /api/plugins/:id` - Dettaglio plugin
-- `PUT /api/plugins/:id` - Aggiorna plugin
-- `DELETE /api/plugins/:id` - Disinstalla plugin
-- `POST /api/plugins/:id/toggle` - Abilita/Disabilita
-- `POST /api/plugins/:id/execute` - Esegui plugin
-- `POST /api/plugins/scan` - Scansione plugin
-
-## Sicurezza Implementata
-
-### Autenticazione & Autorizzazione
-- **JWT Token** con scadenza configurabile
-- **Password policy** robusta (OWASP-compliant)
-- **Argon2** per hashing password
-- **Role-based access control** (RBAC)
-
-### Database Security
-- **Prepared statements** per prevenire SQL injection
-- **UUID** invece di ID incrementali
-- **Validazione input** su tutti gli endpoint
-- **Rate limiting** configurabile
-
-### Network Security
-- **CORS** configurato correttamente
-- **HTTPS ready** per produzione
-- **Token validation** su ogni richiesta protetta
-
-## Deployment
-
-### Sviluppo
-```bash
-# Avvia database PostgreSQL
-sudo systemctl start postgresql
-
-# Avvia backend
-cd backend
+# SentinelCore - Vulnerability Management System
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
+[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
+
+SentinelCore is a comprehensive vulnerability management platform designed for security teams to efficiently track, manage, and remediate security vulnerabilities across their infrastructure.
+
+## ✨ Key Features
+
+- 🔒 **Secure by Design** - JWT authentication with httpOnly cookies, RBAC, security headers
+- 🎯 **Vulnerability Management** - Track, prioritize, and remediate security vulnerabilities
+- 👥 **Team Collaboration** - Multi-team support with role-based access control
+- 📊 **Risk Analysis** - CVSS scoring, EPSS integration, risk prioritization
+- 🔌 **Scanner Integration** - Import from Qualys, Nessus, Burp Suite, OpenVAS, Nexpose
+- 📈 **Executive Reporting** - Management reports with KPIs and metrics
+- 🌐 **Network Scanning** - Built-in network discovery and vulnerability scanning
+- 🔄 **Automated Remediation** - Workflow automation for common security fixes
+- 📧 **Notifications** - Email, Slack, and webhook integrations
+- 🐳 **Docker Ready** - Full containerized deployment with Docker Compose
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose (recommended)
+- OR: PostgreSQL 14+, Rust 1.75+, Node.js 18+
+
+### Option 1: Docker (Recommended)
+
+\`\`\`bash
+# Clone the repository
+git clone https://github.com/Dognet-Technologies/sentinelcore.git
+cd sentinelcore
+
+# Copy environment configuration
+cp .env.production.example .env
+
+# Edit .env and set your secrets
+nano .env
+
+# Start with Docker Compose
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8080
+\`\`\`
+
+### Option 2: Manual Setup
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed installation instructions.
+
+### Default Credentials
+
+- **Username:** \`admin\`
+- **Password:** \`DogNET2024!\`
+
+**⚠️ IMPORTANT:** Change the default password immediately after first login!
+
+## 📚 Documentation
+
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete deployment instructions
+- **[Security Setup](docs/SECURITY.md)** - Security configuration and best practices
+- **[API Documentation](docs/API.md)** - REST API reference
+- **[Scanner Integration](docs/SCANNER_INTEGRATION.md)** - Import from security scanners
+
+### For Developers
+
+- **[Development Guide](docs/development/DEVELOPMENT.md)** - Setup development environment
+- **[Architecture](docs/development/ARCHITECTURE.md)** - System architecture overview
+
+## 🏗️ Architecture
+
+\`\`\`
+┌─────────────────┐      ┌──────────────────┐
+│  React Frontend │ ───▶ │   Axum Backend   │
+│   (TypeScript)  │      │     (Rust)       │
+└─────────────────┘      └──────────────────┘
+                                  │
+                         ┌────────┴────────┐
+                         │   PostgreSQL    │
+                         │    Database     │
+                         └─────────────────┘
+\`\`\`
+
+- **Backend:** Rust with Axum 0.6 web framework
+- **Frontend:** React 18 with TypeScript
+- **Database:** PostgreSQL 14+ with JSONB support
+- **Authentication:** JWT with httpOnly cookies
+- **Security:** RBAC, CORS, rate limiting, security headers
+
+## 🔌 Scanner Integration
+
+SentinelCore can import vulnerability data from major security scanners:
+
+- **Qualys** - XML report import
+- **Nessus** - .nessus XML format
+- **Burp Suite** - JSON issue export
+- **OpenVAS/GVM** - XML reports
+- **Nexpose/InsightVM** - XML format
+
+Upload scan results via API or web interface for centralized vulnerability management.
+
+## 🛡️ Security Features
+
+- ✅ JWT authentication with httpOnly cookies (XSS protection)
+- ✅ Role-Based Access Control (Admin, Team Leader, User)
+- ✅ Security headers (HSTS, CSP, X-Frame-Options, etc.)
+- ✅ CORS whitelist configuration
+- ✅ Rate limiting and brute force protection
+- ✅ CSRF protection
+- ✅ Password policy enforcement
+- ✅ Two-Factor Authentication (2FA)
+- ✅ Session management and revocation
+- ✅ Audit logging
+
+## 📊 Roles & Permissions
+
+### Admin
+- Full system access
+- User and team management
+- System configuration
+- Security settings
+
+### Team Leader
+- Manage team members
+- Assign vulnerabilities to team
+- View team metrics
+- Create reports
+
+### User
+- View assigned vulnerabilities
+- Update vulnerability status
+- Comment on vulnerabilities
+- Export data
+
+## 🔧 Development
+
+\`\`\`bash
+# Backend (Rust)
+cd vulnerability-manager
+cargo build
 cargo run
 
-# Server disponibile su http://localhost:8080
-```
+# Frontend (React)
+cd vulnerability-manager-frontend
+npm install
+npm start
 
-### Produzione
-- Docker container supportato
-- Reverse proxy (nginx/traefik)
-- SSL/TLS certificati
-- Environment-based configuration
-- Health checks integrati
+# Run tests
+cargo test
+npm test
+\`\`\`
+
+## 📝 Scripts
+
+Useful scripts are available in the \`scripts/\` directory:
+
+- \`scripts/setup.sh\` - Initial setup and dependency installation
+- \`scripts/start.sh\` - Start all services
+- \`scripts/migrations.sh\` - Run database migrations
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Axum](https://github.com/tokio-rs/axum) and [React](https://reactjs.org/)
+- Created by [Dognet Technologies](https://github.com/Dognet-Technologies)
+
+## 📞 Support
+
+- 🐛 Issues: [GitHub Issues](https://github.com/Dognet-Technologies/sentinelcore/issues)
+
+---
+
+**Made with ❤️ by Dognet Technologies**
