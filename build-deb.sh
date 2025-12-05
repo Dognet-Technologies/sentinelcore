@@ -33,7 +33,20 @@ fi
 echo "✅ Using SQLx query cache from .sqlx/ directory"
 
 # Build with offline mode
-cargo build --release
+if ! cargo build --release 2>&1; then
+    echo ""
+    echo "❌ Build failed!"
+    echo ""
+    echo "If you see 'no cached data for this query' errors, the SQLx cache is outdated."
+    echo ""
+    echo "To fix this, regenerate the cache:"
+    echo "   cd vulnerability-manager"
+    echo "   ./regenerate-sqlx-cache.sh"
+    echo ""
+    echo "This requires PostgreSQL to be running. See vulnerability-manager/regenerate-sqlx-cache.sh for details."
+    echo ""
+    exit 1
+fi
 
 cd ..
 
