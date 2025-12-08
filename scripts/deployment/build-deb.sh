@@ -40,10 +40,9 @@ if ! cargo build --release 2>&1; then
     echo "If you see 'no cached data for this query' errors, the SQLx cache is outdated."
     echo ""
     echo "To fix this, regenerate the cache:"
-    echo "   cd vulnerability-manager"
-    echo "   ./regenerate-sqlx-cache.sh"
+    echo "   scripts/deployment/regenerate-sqlx-cache.sh"
     echo ""
-    echo "This requires PostgreSQL to be running. See vulnerability-manager/regenerate-sqlx-cache.sh for details."
+    echo "This requires PostgreSQL to be running. See scripts/deployment/regenerate-sqlx-cache.sh for details."
     echo ""
     exit 1
 fi
