@@ -1,0 +1,182 @@
+# Vulnerability Manager - Struttura del Progetto
+
+## 📁 Struttura Frontend (React + TypeScript)
+
+```
+vulnerability-manager-frontend/
+├── .env                          # Variabili d'ambiente
+├── .gitignore                    # File da ignorare in git
+├── package.json                  # Dipendenze e script npm
+├── package-lock.json             # Lock file npm
+├── tsconfig.json                 # Configurazione TypeScript
+├── README.md                     # Documentazione del progetto
+├── public/
+│   ├── index.html               # Template HTML principale
+│   ├── favicon.ico              # Icona del sito
+│   └── manifest.json            # Manifest per PWA
+└── src/
+    ├── index.tsx                # Entry point React
+    ├── App.tsx                  # Componente principale con routing
+    ├── react-app-env.d.ts       # Tipi per Create React App
+    │
+    ├── api/                     # Layer API
+    │   ├── api.ts              # Client API base con axios
+    │   ├── auth.ts             # API per autenticazione
+    │   ├── vulnerabilities.ts   # API per vulnerabilità
+    │   ├── teams.ts            # API per team
+    │   ├── users.ts            # API per utenti
+    │   ├── hosts.ts            # API per host
+    │   ├── reports.ts          # API per report
+    │   └── plugins.ts          # API per plugin
+    │
+    ├── components/              # Componenti React
+    │   ├── common/             # Componenti condivisi
+    │   │   ├── AnimatedCard.tsx
+    │   │   ├── EnhancedLayout.tsx  # Layout principale con sidebar
+    │   │   ├── ProtectedRoute.tsx  # Route protette
+    │   │   └── LoadingSpinner.tsx
+    │   │
+    │   ├── vulnerabilities/    # Componenti per vulnerabilità
+    │   │   ├── VulnerabilityDetail.tsx
+    │   │   ├── VulnerabilityForm.tsx
+    │   │   └── VulnerabilityChart.tsx
+    │   │
+    │   ├── teams/              # Componenti per team
+    │   │   └── TeamForm.tsx
+    │   │
+    │   ├── reports/            # Componenti per report
+    │   │   └── ReportCard.tsx
+    │   │
+    │   └── settings/           # Componenti per impostazioni
+    │       └── ThemeSelector.tsx
+    │
+    ├── contexts/               # React Context per stato globale
+    │   ├── AuthContext.tsx     # Contesto autenticazione
+    │   └── EnhancedThemeContext.tsx  # Contesto tema
+    │
+    ├── hooks/                  # Custom React hooks
+    │   ├── useAuth.ts          # Hook per autenticazione
+    │   └── useDebounce.ts      # Hook per debounce
+    │
+    ├── pages/                  # Pagine/Route principali
+    │   ├── Dashboard.tsx       # Dashboard con grafici e metriche
+    │   ├── Login.tsx          # Pagina di login
+    │   ├── Vulnerabilities.tsx # Lista vulnerabilità
+    │   ├── Teams.tsx          # Gestione team
+    │   ├── Users.tsx          # Gestione utenti
+    │   ├── Hosts.tsx          # Gestione host
+    │   ├── Reports.tsx        # Lista report
+    │   ├── NewReport.tsx      # Creazione nuovo report
+    │   ├── ReportHistory.tsx  # Storico report
+    │   ├── Plugins.tsx        # Gestione plugin
+    │   ├── Settings.tsx       # Impostazioni
+    │   └── Profile.tsx        # Profilo utente
+    │
+    ├── types/                  # TypeScript type definitions
+    │   └── index.ts           # Tutti i tipi/interfacce
+    │
+    └── utils/                  # Funzioni utility
+        ├── auth.ts            # Utility per autenticazione
+        ├── validators.ts      # Validatori form
+        └── formatters.ts      # Formattatori dati
+```
+
+## 📦 Dipendenze Principali
+
+### Dependencies
+- **react**: ^18.2.0
+- **react-dom**: ^18.2.0
+- **react-router-dom**: ^6.x
+- **@mui/material**: ^5.x (Material-UI)
+- **@mui/icons-material**: ^5.x
+- **@emotion/react**: ^11.x
+- **@emotion/styled**: ^11.x
+- **axios**: ^1.x
+- **@tanstack/react-query**: ^5.x
+- **chart.js**: ^4.x
+- **react-chartjs-2**: ^5.x
+- **date-fns**: ^2.x
+- **react-hook-form**: ^7.x
+- **framer-motion**: ^10.x
+- **@fontsource/inter**: ^5.x
+
+### DevDependencies
+- **typescript**: ^4.x
+- **@types/react**: ^18.x
+- **@types/react-dom**: ^18.x
+- **@types/node**: ^18.x
+
+## 🎨 File di Stile e Tema
+
+Il progetto usa Material-UI (MUI) per lo styling con:
+- **Tema personalizzato** definito in `EnhancedThemeContext.tsx`
+- **Modalità light/dark** switchabile
+- **Font Inter** per un look moderno
+- **Componenti styled** con emotion
+
+## 🔐 Gestione Stato
+
+1. **Autenticazione**: Gestita tramite `AuthContext`
+2. **Tema**: Gestito tramite `EnhancedThemeContext`
+3. **Dati Server**: Gestiti con React Query
+4. **Form**: Gestiti con react-hook-form
+
+## 🚀 Script NPM
+
+```json
+{
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  }
+}
+```
+
+## 📝 File Mancanti o da Completare
+
+Basandomi sull'analisi dei sorgenti, questi file potrebbero mancare o essere incompleti:
+
+1. **utils/auth.ts** - Utility per gestione token
+2. **utils/validators.ts** - Validatori per form
+3. **utils/formatters.ts** - Formattatori per date, numeri, etc.
+4. **components/common/LoadingSpinner.tsx** - Spinner di caricamento
+5. **hooks/useDebounce.ts** - Hook per debounce input
+6. **public/index.html** - Template HTML
+7. **tsconfig.json** - Configurazione TypeScript
+
+## 🔧 Configurazione Backend
+
+Il frontend si aspetta un backend Rust in esecuzione su `http://localhost:8080` con le seguenti API:
+
+- `/auth/login` - POST - Login
+- `/auth/logout` - POST - Logout
+- `/vulnerabilities` - GET/POST/PUT/DELETE - CRUD vulnerabilità
+- `/teams` - GET/POST/PUT/DELETE - CRUD team
+- `/users` - GET/POST/PUT/DELETE - CRUD utenti
+- `/hosts` - GET/POST - Gestione host
+- `/reports` - GET/POST - Gestione report
+- `/plugins` - GET/POST - Gestione plugin
+
+## 📊 Database
+
+PostgreSQL con le seguenti tabelle principali:
+- users
+- vulnerabilities
+- teams
+- team_members
+- hosts
+- reports
+- plugins
+- vulnerability_assignments
+
+## 🚦 Prossimi Passi
+
+1. **Completare i file mancanti** elencati sopra
+2. **Configurare il proxy** in package.json per evitare CORS in sviluppo
+3. **Aggiungere test** con Jest e React Testing Library
+4. **Configurare CI/CD** con GitHub Actions
+5. **Documentare le API** con Swagger/OpenAPI
+6. **Aggiungere internazionalizzazione** (i18n)
+7. **Implementare WebSocket** per notifiche real-time
