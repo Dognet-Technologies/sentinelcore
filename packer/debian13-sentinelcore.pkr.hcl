@@ -27,17 +27,17 @@ variable "version" {
 
 variable "iso_url" {
   type    = string
-  default = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.0.0-amd64-netinst.iso"
+  default = "https://cdimage.debian.org/debian-cd/12.8.0/amd64/iso-cd/debian-12.8.0-amd64-netinst.iso"
 }
 
 variable "iso_checksum" {
   type    = string
-  default = "file:https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/SHA256SUMS"
+  default = "sha256:c9d35acd27b848c5cf7537053e6ebc55c19d31b43346fb776fb5f8a9e2cf7f14"
 }
 
 variable "vm_name" {
   type    = string
-  default = "sentinelcore-debian13"
+  default = "sentinelcore-debian12"
 }
 
 variable "disk_size" {
