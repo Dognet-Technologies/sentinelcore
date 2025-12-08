@@ -57,12 +57,12 @@ variable "cpus" {
 
 variable "ssh_username" {
   type    = string
-  default = "sentinelcore"
+  default = "microcyber"
 }
 
 variable "ssh_password" {
   type    = string
-  default = "sentinelcore"
+  default = "microcyber"
   sensitive = true
 }
 

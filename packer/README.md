@@ -158,15 +158,15 @@ qemu-img convert -f qcow2 -O vmdk \
 
 ### Default Credentials
 
-- **SSH User**: `sentinelcore`
-- **SSH Password**: `sentinelcore` (change immediately!)
+- **SSH User**: `microcyber`
+- **SSH Password**: `microcyber` (change immediately!)
 - **Web Admin**: `admin@sentinelcore.local`
 - **Web Password**: `admin` (change immediately!)
 
 ### Run Configuration Wizard
 
 ```bash
-ssh sentinelcore@<vm-ip>
+ssh microcyber@<vm-ip>
 sudo sentinelcore-first-boot
 ```
 

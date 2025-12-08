@@ -49,8 +49,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --defaul
 source /root/.cargo/env
 
 # Make Rust available for all users
-cp -r /root/.cargo /home/sentinelcore/
-chown -R sentinelcore:sentinelcore /home/sentinelcore/.cargo
+cp -r /root/.cargo /home/microcyber/
+chown -R microcyber:microcyber /home/microcyber/.cargo
 
 # Clone SentinelCore repository
 echo "📦 Cloning SentinelCore repository..."
@@ -85,25 +85,25 @@ export DATABASE_URL="postgresql://vlnman:changeme_on_first_boot@localhost:5432/v
 # Run migrations
 echo "🗄️  Running database migrations..."
 cd /opt/sentinelcore/vulnerability-manager
-sudo -u sentinelcore -H sh -c "source /home/sentinelcore/.cargo/env && cargo install sqlx-cli --no-default-features --features postgres"
-sudo -u sentinelcore -H sh -c "source /home/sentinelcore/.cargo/env && DATABASE_URL='$DATABASE_URL' sqlx database create"
-sudo -u sentinelcore -H sh -c "source /home/sentinelcore/.cargo/env && DATABASE_URL='$DATABASE_URL' sqlx migrate run"
+sudo -u microcyber -H sh -c "source /home/microcyber/.cargo/env && cargo install sqlx-cli --no-default-features --features postgres"
+sudo -u microcyber -H sh -c "source /home/microcyber/.cargo/env && DATABASE_URL='$DATABASE_URL' sqlx database create"
+sudo -u microcyber -H sh -c "source /home/microcyber/.cargo/env && DATABASE_URL='$DATABASE_URL' sqlx migrate run"
 
 # Regenerate SQLx cache
 echo "🔧 Regenerating SQLx query cache..."
 cd /opt/sentinelcore
-sudo -u sentinelcore -H sh -c "source /home/sentinelcore/.cargo/env && DATABASE_URL='$DATABASE_URL' /opt/sentinelcore/scripts/deployment/regenerate-sqlx-cache.sh"
+sudo -u microcyber -H sh -c "source /home/microcyber/.cargo/env && DATABASE_URL='$DATABASE_URL' /opt/sentinelcore/scripts/deployment/regenerate-sqlx-cache.sh"
 
 # Build backend
 echo "🔨 Building Rust backend..."
 cd /opt/sentinelcore/vulnerability-manager
-sudo -u sentinelcore -H sh -c "source /home/sentinelcore/.cargo/env && SQLX_OFFLINE=true cargo build --release"
+sudo -u microcyber -H sh -c "source /home/microcyber/.cargo/env && SQLX_OFFLINE=true cargo build --release"
 
 # Build frontend
 echo "🎨 Building React frontend..."
 cd /opt/sentinelcore/vulnerability-manager-frontend
-sudo -u sentinelcore npm install
-sudo -u sentinelcore npm run build
+sudo -u microcyber npm install
+sudo -u microcyber npm run build
 
 # Install backend binary
 echo "📦 Installing SentinelCore..."
@@ -165,9 +165,9 @@ ALTER USER vlnman WITH PASSWORD '${DB_PASSWORD}';
 EOF
 
 # Set permissions
-chown -R sentinelcore:sentinelcore /opt/sentinelcore
-chown -R sentinelcore:sentinelcore /var/lib/sentinelcore
-chown -R sentinelcore:sentinelcore /var/log/sentinelcore
+chown -R microcyber:microcyber /opt/sentinelcore
+chown -R microcyber:microcyber /var/lib/sentinelcore
+chown -R microcyber:microcyber /var/log/sentinelcore
 chmod 600 /opt/sentinelcore/.env
 
 # Create systemd service
@@ -180,8 +180,8 @@ Wants=postgresql.service
 
 [Service]
 Type=simple
-User=sentinelcore
-Group=sentinelcore
+User=microcyber
+Group=microcyber
 WorkingDirectory=/opt/sentinelcore
 EnvironmentFile=/opt/sentinelcore/.env
 ExecStart=/opt/sentinelcore/bin/vulnerability-manager

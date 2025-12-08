@@ -69,11 +69,11 @@ Get the latest VM image from GitHub releases:
 ### 1. Start VM and Login
 
 **Default SSH credentials:**
-- Username: `sentinelcore`
-- Password: `sentinelcore`
+- Username: `microcyber`
+- Password: `microcyber`
 
 ```bash
-ssh sentinelcore@<vm-ip>
+ssh microcyber@<vm-ip>
 ```
 
 ### 2. Run Configuration Wizard
@@ -275,7 +275,7 @@ sudo -u postgres psql vulnerability_manager < backup-20241208.sql
 
 | Service | Username | Default Password |
 |---------|----------|------------------|
-| SSH | sentinelcore | sentinelcore |
+| SSH | microcyber | microcyber |
 | Web Admin | admin@sentinelcore.local | admin |
 | PostgreSQL | vlnman | (random, see .env) |
 
