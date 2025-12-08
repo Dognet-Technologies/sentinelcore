@@ -27,12 +27,14 @@ variable "version" {
 
 variable "iso_url" {
   type    = string
-  default = "https://cdimage.debian.org/debian-cd/12.8.0/amd64/iso-cd/debian-12.8.0-amd64-netinst.iso"
+  default = "/home/simone/Immagini/ISO/debian-12.11.0-amd64-netinst.iso"
+  description = "Path to local Debian 12.11.0 ISO file"
 }
 
 variable "iso_checksum" {
   type    = string
-  default = "sha256:c9d35acd27b848c5cf7537053e6ebc55c19d31b43346fb776fb5f8a9e2cf7f14"
+  default = "sha256:30ca12a15cae6a1033e03ad59eb7f66a6d5a258dcf27acd115c2bd42d22640e8"
+  description = "SHA256 checksum for Debian 12.11.0 ISO"
 }
 
 variable "vm_name" {
