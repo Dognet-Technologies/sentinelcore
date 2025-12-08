@@ -1,0 +1,26 @@
+# Packer output directories
+output-*/
+packer_cache/
+*.box
+*.ova
+*.qcow2
+*.vmdk
+*.vdi
+*.img
+*.iso
+
+# Compressed images
+*.tar.gz
+*.zip
+
+# Checksums
+*.checksum
+*.sha256
+
+# Logs
+packer-*.log
+crash.log
+
+# Temporary files
+*.tmp
+.DS_Store
