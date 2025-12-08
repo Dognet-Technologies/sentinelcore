@@ -1,5 +1,7 @@
 # SentinelCore - Vulnerability Management System
 
+## => IL SISTEMA È ANCORA INSTABILE, NON USARE IN PRODUZIONE, CI SONO ANCORA DIVERSI ERRORI DA CORREGGERE, ANCHE CON DOCKER <=
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
 [![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
