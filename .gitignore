@@ -1,6 +1,6 @@
 # Rust
 target/
-# Note: Cargo.lock should be committed for applications (not libraries)
+# Note: Cargo.lock should be committed for applications
 
 # Node.js / React
 node_modules/
