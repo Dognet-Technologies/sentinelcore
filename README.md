@@ -8,53 +8,106 @@ SentinelCore is a comprehensive vulnerability management platform designed for s
 
 ## ✨ Key Features
 
-- 🔒 **Secure by Design** - JWT authentication with httpOnly cookies, RBAC, security headers
+### Core Security
+- 🔒 **Secure by Design** - JWT authentication with httpOnly cookies, RBAC, CSRF protection, security headers
 - 🎯 **Vulnerability Management** - Track, prioritize, and remediate security vulnerabilities
-- 👥 **Team Collaboration** - Multi-team support with role-based access control
-- 📊 **Risk Analysis** - CVSS scoring, EPSS integration, risk prioritization
-- 🔌 **Scanner Integration** - Import from Qualys, Nessus, Burp Suite, OpenVAS, Nexpose
-- 📈 **Executive Reporting** - Management reports with KPIs and metrics
+- 🧮 **Intelligent Risk Scoring** - Advanced formula: (CVSS×0.30) + (EPSS×0.25) + (Business×0.25) + (Exposure×0.15) + (Exploit×0.05)
+- ⏰ **SLA Automation** - Automatic deadline calculation and breach alerting (Critical: 1d, High: 7d, Medium: 30d)
+- 🚨 **Priority Overrides** - Auto-escalate zero-days, ransomware-targeted, and actively exploited CVEs
+
+### Team & Collaboration
+- 👥 **Team Management** - Multi-team support with role-based access control
+- 💬 **Comments System** - Built-in collaboration with @mentions, threading, and attachments
+- 📋 **Remediation Plans** - Structured workflows with step tracking and assignment
+- 📊 **Workload Dashboard** - Team capacity tracking and task distribution
+
+### Integrations & Automation
+- 🔌 **Scanner Integration** - Import from Qualys, Nessus, Burp Suite, OpenVAS, Nexpose (5/13 scanners)
+- 🎫 **JIRA Auto-Ticketing** - Bi-directional sync with configurable rules and priority mapping
+- 🔔 **Smart Notifications** - Rule-based routing to Email, Slack, Telegram with throttling and quiet hours
+- 📈 **Executive Reporting** - Management reports with KPIs, trends, and compliance mapping
+
+### Network & Discovery
 - 🌐 **Network Scanning** - Built-in network discovery and vulnerability scanning
 - 🔄 **Automated Remediation** - Workflow automation for common security fixes
-- 📧 **Notifications** - Email, Slack, and webhook integrations
-- 🐳 **Docker Ready** - Full containerized deployment with Docker Compose
+- 🗺️ **Device Management** - Edit devices, bulk operations, multi-select, assignment tracking
+
+### Intelligence
+- 📊 **CVSS & EPSS Scoring** - Industry-standard vulnerability metrics
+- 🎯 **Exploit Intelligence** - Metasploit, ExploitDB, CISA KEV catalog integration (roadmap)
+- 🏢 **Business Impact** - Asset criticality, sensitive data, revenue impact scoring
+- 🌍 **Asset Exposure** - Network position analysis (Internet-facing, DMZ, Internal, Isolated)
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Docker & Docker Compose (recommended)
-- OR: PostgreSQL 14+, Rust 1.75+, Node.js 18+
+- Debian 12 or Ubuntu 22.04+ (recommended)
+- OR: PostgreSQL 15+, Rust 1.75+, Node.js 20+
 
-### Option 1: Docker (Recommended)
+### Option 1: One-Liner Install (Fastest! ⚡)
+
+**Install SentinelCore with a single command:**
 
 \`\`\`bash
-# Clone the repository
-git clone https://github.com/Dognet-Technologies/sentinelcore.git
-cd sentinelcore
-
-# Copy environment configuration
-cp .env.production.example .env
-
-# Edit .env and set your secrets
-nano .env
-
-# Start with Docker Compose
-docker-compose up -d
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8080
+curl -sSL https://raw.githubusercontent.com/Dognet-Technologies/sentinelcore/main/scripts/quick-install.sh | sudo bash
 \`\`\`
 
-### Option 2: Manual Setup
+**What it does:**
+- ✅ Installs all dependencies (PostgreSQL, Nginx, Rust, Node.js)
+- ✅ Clones repository
+- ✅ Compiles backend + frontend
+- ✅ Sets up database with migrations
+- ✅ Configures systemd service
+- ✅ Ready in ~20 minutes!
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed installation instructions.
+**After installation:**
+\`\`\`bash
+# Access web UI
+http://<your-server-ip>
+
+# Default credentials
+Email: admin@sentinelcore.local
+Password: admin
+
+# Service management
+sudo systemctl status sentinelcore
+sudo systemctl restart sentinelcore
+\`\`\`
+
+### Option 2: Manual VM Setup
+
+**Step-by-step manual installation:**
+
+\`\`\`bash
+# 1. Clone repository
+cd /opt
+sudo mkdir sentinelcore
+sudo chown $USER:$USER sentinelcore
+git clone https://github.com/Dognet-Technologies/sentinelcore.git sentinelcore
+
+# 2. Run automated setup
+cd sentinelcore
+sudo ./scripts/deployment/vm-setup-debian13.sh
+\`\`\`
+
+See [docs/VM_MANUAL_QUICKSTART.md](docs/VM_MANUAL_QUICKSTART.md) for detailed guide.
+
+### Option 3: Debian Package (.deb)
+
+\`\`\`bash
+# Build .deb package
+cd sentinelcore
+./scripts/deployment/build-deb.sh
+
+# Install package
+sudo dpkg -i sentinelcore_1.0.0_amd64.deb
+\`\`\`
 
 ### Default Credentials
 
-- **Username:** \`admin\`
-- **Password:** \`DogNET2024!\`
+- **Email:** \`admin@sentinelcore.local\`
+- **Password:** \`admin\`
 
 **⚠️ IMPORTANT:** Change the default password immediately after first login!
 
