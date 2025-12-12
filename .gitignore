@@ -1,6 +1,6 @@
 # Rust
 target/
-Cargo.lock
+# Note: Cargo.lock should be committed for applications
 
 # Node.js / React
 node_modules/
@@ -12,23 +12,46 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Development directory (playground, notes, old docs)
+dev/
+
 # IDE
 .vscode/
 .idea/
+*.sublime-*
 
 # OS
 .DS_Store
 Thumbs.db
+
 # Environment files
 .env
-# Sublime Text
-*.sublime-*
 
-# External
+# Logs
+backend.log
+frontend.log
+*.log
+
+# Build artifacts
+build/
+dist/
+
+# Database
+*.db
+*.sqlite
+
+# Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# External (legacy)
 Documentazione/
 Robaccia/
 SORGENTI_FUNZIONANTI_13.06.2025/
 Finanziamenti/
 Immagini/
-backend.log
-frontend.log
