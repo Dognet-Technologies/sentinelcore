@@ -1,0 +1,18 @@
+[33m8d58f45[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge branch 'main' of github.com:Dognet-Technologies/sentinelcore
+[33mf86e74b[m Merge branch 'claude/complete-remaining-tasks-HLdrT' of github.com:Dognet-Technologies/sentinelcore
+[33m0c55e7b[m fix: Use single quotes for JWT secret in YAML config
+[33mf8e5d0c[m Merge branch 'claude/complete-remaining-tasks-HLdrT' of github.com:Dognet-Technologies/sentinelcore
+[33m0e2c2c5[m fix: Resolve API route conflict for comments endpoints
+[33m4722bba[m fix: Update default config with secure JWT secret and correct database port
+[33m11a9bcd[m Merge branch 'claude/complete-remaining-tasks-HLdrT' of github.com:Dognet-Technologies/sentinelcore
+[33mfba141a[m Rename .env.example
+[33md3408fa[m fix: Resolve frontend TypeScript compilation errors
+[33m200d4c1[m Merge branch 'claude/complete-remaining-tasks-HLdrT'
+[33m7c34334[m Final stable build
+[33mfb95543[m feat: Add num-traits dependency for BigDecimal conversions
+[33m48b53e3[m fix: Resolve BigDecimal and SQL type inconsistency errors
+[33m8fbbb9d[m fix: Resolve all remaining compilation errors (14 errors fixed)
+[33ma145b59[m fix: Correct SQL syntax in JIRA integration migration
+[33m96bcdba[m fix: Resolve all remaining compilation errors (26 errors fixed)
+[33m5bf1bc6[m fix: Resolve all compilation errors - database schema and code alignment
+[33mc9d01aa[m fix: Correct SQL syntax in JIRA integration migration
