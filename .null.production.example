@@ -1,0 +1,94 @@
+# .env.production.example
+# Production Environment Configuration for SentinelCore
+#
+# CRITICAL SECURITY NOTICE:
+# 1. Copy this file to .env.production
+# 2. Generate STRONG random secrets for JWT_SECRET and DATABASE_PASSWORD
+# 3. NEVER commit .env.production to git
+# 4. Use a secrets manager (HashiCorp Vault, AWS Secrets Manager, etc.) in production
+#
+
+# ========================================
+# DATABASE CONFIGURATION
+# ========================================
+# Generate strong password: openssl rand -base64 32
+DATABASE_URL=postgresql://vlnman:CHANGE_THIS_STRONG_PASSWORD@localhost:5432/vulnerability_manager
+
+# ========================================
+# JWT AUTHENTICATION
+# ========================================
+# Generate strong secret: openssl rand -base64 64
+# CRITICAL: This MUST be changed and kept secret
+JWT_SECRET=CHANGE_THIS_TO_A_STRONG_RANDOM_SECRET_AT_LEAST_64_CHARACTERS_LONG
+
+# ========================================
+# SERVER CONFIGURATION
+# ========================================
+VULN_SERVER_HOST=0.0.0.0
+VULN_SERVER_PORT=8443
+VULN_SERVER_ENABLE_TLS=true
+VULN_SERVER_TLS_CERT_PATH=/etc/sentinelcore/certs/cert.pem
+VULN_SERVER_TLS_KEY_PATH=/etc/sentinelcore/certs/key.pem
+
+# ========================================
+# SECURITY - CORS ALLOWED ORIGINS
+# ========================================
+# Comma-separated list of allowed origins
+VULN_SECURITY_CORS_ALLOWED_ORIGINS=https://sentinelcore.example.com,https://app.sentinelcore.example.com
+
+# ========================================
+# SECURITY - COOKIES DOMAIN
+# ========================================
+VULN_SECURITY_COOKIES_DOMAIN=sentinelcore.example.com
+
+# ========================================
+# DATABASE POOL
+# ========================================
+VULN_DATABASE_MAX_CONNECTIONS=20
+VULN_DATABASE_MIN_CONNECTIONS=5
+
+# ========================================
+# LOGGING
+# ========================================
+RUST_LOG=info,sqlx=warn,vulnerability_manager=info
+VULN_LOG_LEVEL=info
+VULN_LOG_FILE=/var/log/sentinelcore/app.log
+VULN_LOG_FORMAT=json
+
+# ========================================
+# MONITORING
+# ========================================
+VULN_MONITORING_ENABLED=true
+VULN_MONITORING_METRICS_PORT=9090
+
+# ========================================
+# PLUGINS
+# ========================================
+VULN_PLUGINS_DIRECTORY=/var/lib/sentinelcore/plugins
+VULN_PLUGINS_ENABLED=true
+
+# ========================================
+# SMTP EMAIL (Optional)
+# ========================================
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-email@example.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=noreply@sentinelcore.example.com
+
+# ========================================
+# TELEGRAM BOT (Optional)
+# ========================================
+TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+TELEGRAM_CHAT_ID=YOUR_CHAT_ID
+
+# ========================================
+# APPLICATION ENVIRONMENT
+# ========================================
+APP_ENV=production
+NODE_ENV=production
+
+# ========================================
+# SQLX (Build time)
+# ========================================
+SQLX_OFFLINE=true
