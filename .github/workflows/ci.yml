@@ -53,9 +53,11 @@ jobs:
             vulnerability-manager-frontend/node_modules
           key: ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock', 'vulnerability-manager-frontend/package-lock.json') }}
 
-      - name: Install sqlx-cli
-        run: |
-        . "$HOME/.cargo/env" cargo install sqlx-cli -no-default-features --features rustls --version 0.7.0 || true
+      - name: Install sqlx-cli 
+        run: | 
+          . "$HOME/.cargo/env" 
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH 
+          cargo install sqlx-cli --no-default-features --features rustls --version 0.7.0 || true
 
       - name: Wait for Postgres
         run: |
