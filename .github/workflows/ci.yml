@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, 'release/*' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system deps (Debian)
+        run: |
+          apt-get update
+          apt-get install -y build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git ruby ruby-dev gcc make
+
+      - name: Setup Rust (rustup)
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup default stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache cargo and node modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            vulnerability-manager-frontend/node_modules
+          key: ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock', 'vulnerability-manager-frontend/package-lock.json') }}
+
+      - name: Install sqlx-cli
+        run: |
+          source $HOME/.cargo/env
+          cargo install sqlx-cli --no-default-features --features rustls --version 0.7.0 || true
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do pg_isready -h localhost -p 5432 && break || sleep 1; done
+
+      - name: Set DATABASE_URL
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          echo "DATABASE_URL=${DATABASE_URL}" >> $GITHUB_ENV
+
+      - name: Regenerate SQLx cache (if needed)
+        run: |
+          chmod +x scripts/deployment/regenerate-sqlx-cache.sh || true
+          scripts/deployment/regenerate-sqlx-cache.sh || echo "Regenerate script exited non-zero (ok to continue if cache already present)"
+
+      - name: Build backend (release)
+        working-directory: vulnerability-manager
+        env:
+          SQLX_OFFLINE: "true"
+        run: |
+          source $HOME/.cargo/env
+          cargo build --release
+
+      - name: Run backend tests
+        working-directory: vulnerability-manager
+        run: |
+          source $HOME/.cargo/env
+          cargo test --all --no-fail-fast
+
+      - name: Build frontend
+        working-directory: vulnerability-manager-frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Basic smoke check
+        run: |
+          echo "Build finished for backend and frontend"
