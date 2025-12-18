@@ -54,7 +54,7 @@ jobs:
           key: ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock', 'vulnerability-manager-frontend/package-lock.json') }}
 
       - name: Install sqlx-cli 
-        run: | 
+        run: |
           . "$HOME/.cargo/env" 
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH 
           cargo install sqlx-cli --no-default-features --features rustls --version 0.7.0 || true
