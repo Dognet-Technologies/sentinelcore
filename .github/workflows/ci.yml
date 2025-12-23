@@ -79,13 +79,13 @@ jobs:
         env:
           SQLX_OFFLINE: "true"
         run: |
-          source $HOME/.cargo/env
+          . $HOME/.cargo/env
           cargo build --release
 
       - name: Run backend tests
         working-directory: vulnerability-manager
         run: |
-          source $HOME/.cargo/env
+          . $HOME/.cargo/env
           cargo test --all --no-fail-fast
 
       - name: Build frontend
