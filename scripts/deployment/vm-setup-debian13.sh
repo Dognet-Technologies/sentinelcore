@@ -32,8 +32,6 @@ apt-get install -y \
     postgresql-contrib \
     nginx \
     ufw \
-    arp-scan \
-    net-tools \
     fail2ban
 
 # 2. Installa Node.js 20 LTS
@@ -62,10 +60,22 @@ fi
 
 # 5. Checkout alla branch corretta con le P1-P5
 git fetch origin
-#git checkout claude/sentinelcore-production-review-012z1oZTPpQQ9yXf1tJMBVmM
+git checkout claude/sentinelcore-production-review-012z1oZTPpQQ9yXf1tJMBVmM
 
+# 6. Compila backend
+echo "🔨 Compiling Rust backend..."
+cd vulnerability-manager
+cargo build --release
+cd ..
 
-# 6. Configura PostgreSQL
+# 7. Compila frontend
+echo "🎨 Building React frontend..."
+cd vulnerability-manager-frontend
+npm install
+npm run build
+cd ..
+
+# 8. Configura PostgreSQL
 echo "🐘 Configuring PostgreSQL..."
 sudo -u postgres psql << EOF
 -- Crea database se non esiste
@@ -85,7 +95,7 @@ END
 GRANT ALL PRIVILEGES ON DATABASE vulnerability_manager TO vlnman;
 EOF
 
-# 7. Esegui migrations
+# 9. Esegui migrations
 echo "🔄 Running database migrations..."
 for migration in /opt/sentinelcore/vulnerability-manager/migrations/*.sql; do
     echo "Running $(basename $migration)..."
@@ -98,22 +108,7 @@ if ! id -u sentinelcore > /dev/null 2>&1; then
     useradd -r -s /bin/false -d /opt/sentinelcore sentinelcore
 fi
 
-# 8. Compila frontend
-echo "🎨 Building React frontend..."
-cd vulnerability-manager-frontend
-npm install
-npm run build
-cd ..
-
-
-
-# 9. Compila backend
-echo "🔨 Compiling Rust backend..."
-cd vulnerability-manager
-cargo build --release
-cd ..
-
-# 10. Crea directories e imposta permessi
+# 11. Crea directories e imposta permessi
 echo "📁 Setting up directories..."
 mkdir -p /var/lib/sentinelcore/uploads
 mkdir -p /var/log/sentinelcore
@@ -121,12 +116,12 @@ chown -R sentinelcore:sentinelcore /opt/sentinelcore
 chown -R sentinelcore:sentinelcore /var/lib/sentinelcore
 chown -R sentinelcore:sentinelcore /var/log/sentinelcore
 
-# 11. Crea file .env
+# 12. Crea file .env
 echo "⚙️  Creating configuration file..."
 if [ ! -f /opt/sentinelcore/.env ]; then
     cat > /opt/sentinelcore/.env << 'ENVFILE'
 # Database
-DATABASE_URL=postgresql://vlnman:DogNET@localhost:5432/vulnerability_manager
+DATABASE_URL=postgresql://vlnman:changeme_in_production@localhost:5432/vulnerability_manager
 VULN_DATABASE_MAX_CONNECTIONS=20
 
 # JWT Secret (CHANGE THIS!)
@@ -158,7 +153,7 @@ ENVFILE
     chmod 600 /opt/sentinelcore/.env
 fi
 
-# 12. Crea servizio systemd
+# 13. Crea servizio systemd
 echo "🔧 Creating systemd service..."
 cat > /etc/systemd/system/sentinelcore.service << 'SERVICE'
 [Unit]
@@ -190,7 +185,7 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 SERVICE
 
-# 13. Configura Nginx
+# 14. Configura Nginx
 echo "🌐 Configuring Nginx..."
 cat > /etc/nginx/sites-available/sentinelcore << 'NGINXCONF'
 server {
@@ -241,11 +236,7 @@ server {
 }
 NGINXCONF
 
-
-
-
-
-# 14. Rimuovi default se esiste
+# Rimuovi default se esiste
 rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/sentinelcore /etc/nginx/sites-enabled/
 
