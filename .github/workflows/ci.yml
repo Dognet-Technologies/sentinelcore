@@ -35,7 +35,8 @@ jobs:
 
       - name: Setup Rust (rustup)
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y . "$HOME/.cargo/env" rustup default stable
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
           rustup default stable
 
       - name: Setup Node.js
@@ -53,10 +54,9 @@ jobs:
             vulnerability-manager-frontend/node_modules
           key: ${{ runner.os }}-build-${{ hashFiles('**/Cargo.lock', 'vulnerability-manager-frontend/package-lock.json') }}
 
-      - name: Install sqlx-cli 
+      - name: Install sqlx-cli
         run: |
-          . "$HOME/.cargo/env" 
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH 
+          source $HOME/.cargo/env
           cargo install sqlx-cli --no-default-features --features rustls --version 0.7.0 || true
 
       - name: Wait for Postgres
@@ -79,13 +79,13 @@ jobs:
         env:
           SQLX_OFFLINE: "true"
         run: |
-          . $HOME/.cargo/env
+          source $HOME/.cargo/env
           cargo build --release
 
       - name: Run backend tests
         working-directory: vulnerability-manager
         run: |
-          . $HOME/.cargo/env
+          source $HOME/.cargo/env
           cargo test --all --no-fail-fast
 
       - name: Build frontend
