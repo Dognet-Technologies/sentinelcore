@@ -33,6 +33,9 @@ jobs:
           apt-get update
           apt-get install -y build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git ruby ruby-dev gcc make
 
+      - name: Set HOME for container
+        run: echo "HOME=/root" >> $GITHUB_ENV
+    
       - name: Setup Rust (rustup)
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
