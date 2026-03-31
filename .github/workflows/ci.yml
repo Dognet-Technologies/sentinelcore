@@ -90,10 +90,18 @@ jobs:
 
       - name: Build frontend
         working-directory: vulnerability-manager-frontend
+        env:
+          CI: "false"
         run: |
           npm ci
           npm audit --audit-level=critical
           npm run build
+
+      - name: Run frontend tests
+        working-directory: vulnerability-manager-frontend
+        env:
+          CI: "true"
+        run: npm test -- --watchAll=false --passWithNoTests
 
       - name: Basic smoke check
         run: |

@@ -1,0 +1,156 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-backend:
+    name: Build Rust Backend
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system deps
+        run: |
+          apt-get update
+          apt-get install -y build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git
+
+      - name: Setup Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            vulnerability-manager/target
+          key: ${{ runner.os }}-release-cargo-${{ hashFiles('vulnerability-manager/Cargo.lock') }}
+
+      - name: Build release binary
+        working-directory: vulnerability-manager
+        env:
+          SQLX_OFFLINE: "true"
+        run: |
+          . "$HOME/.cargo/env"
+          cargo build --release
+          strip target/release/vulnerability-manager
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinelcore-backend-linux-amd64
+          path: vulnerability-manager/target/release/vulnerability-manager
+          retention-days: 1
+
+  build-frontend:
+    name: Build React Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: vulnerability-manager-frontend/package-lock.json
+
+      - name: Install and build
+        working-directory: vulnerability-manager-frontend
+        env:
+          CI: "false"
+        run: |
+          npm ci
+          npm run build
+
+      - name: Archive frontend build
+        run: tar -czf sentinelcore-frontend.tar.gz -C vulnerability-manager-frontend/build .
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinelcore-frontend
+          path: sentinelcore-frontend.tar.gz
+          retention-days: 1
+
+  release:
+    name: Create GitHub Release
+    needs: [ build-backend, build-frontend ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Rename backend binary
+        run: |
+          mv dist/sentinelcore-backend-linux-amd64/vulnerability-manager \
+             dist/sentinelcore-${{ steps.version.outputs.VERSION }}-linux-amd64
+          mv dist/sentinelcore-frontend/sentinelcore-frontend.tar.gz \
+             dist/sentinelcore-${{ steps.version.outputs.VERSION }}-frontend.tar.gz
+          chmod +x dist/sentinelcore-${{ steps.version.outputs.VERSION }}-linux-amd64
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
+          if [ -n "$PREV_TAG" ]; then
+            CHANGES=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGES=$(git log --pretty=format:"- %s (%h)" --no-merges | head -30)
+          fi
+          echo "CHANGES<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SentinelCore v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.CHANGES }}
+
+            ## Artifacts
+
+            | File | Description |
+            |------|-------------|
+            | `sentinelcore-*-linux-amd64` | Backend binary (Debian/Ubuntu x86_64) |
+            | `sentinelcore-*-frontend.tar.gz` | Frontend build (serve with nginx/caddy) |
+
+            ## Installation
+
+            ```bash
+            chmod +x sentinelcore-*-linux-amd64
+            ./sentinelcore-*-linux-amd64
+            ```
+          files: |
+            dist/sentinelcore-${{ steps.version.outputs.VERSION }}-linux-amd64
+            dist/sentinelcore-${{ steps.version.outputs.VERSION }}-frontend.tar.gz
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
