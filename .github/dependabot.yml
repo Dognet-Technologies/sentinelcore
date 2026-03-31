@@ -1,0 +1,80 @@
+version: 2
+
+updates:
+  # Frontend NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/vulnerability-manager-frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 10
+    groups:
+      mui:
+        patterns:
+          - "@mui/*"
+          - "@emotion/*"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-*"
+          - "@types/react*"
+      three:
+        patterns:
+          - "three"
+          - "@react-three/*"
+      security-patches:
+        update-types:
+          - "patch"
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Backend Rust/Cargo dependencies
+  - package-ecosystem: "cargo"
+    directory: "/vulnerability-manager"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 10
+    groups:
+      axum-ecosystem:
+        patterns:
+          - "axum*"
+          - "tower*"
+          - "hyper*"
+      tokio-ecosystem:
+        patterns:
+          - "tokio*"
+      security-patches:
+        update-types:
+          - "patch"
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"

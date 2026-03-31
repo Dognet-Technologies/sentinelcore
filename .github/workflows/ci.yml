@@ -92,6 +92,7 @@ jobs:
         working-directory: vulnerability-manager-frontend
         run: |
           npm ci
+          npm audit --audit-level=critical
           npm run build
 
       - name: Basic smoke check
