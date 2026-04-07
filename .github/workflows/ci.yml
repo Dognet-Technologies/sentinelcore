@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     container:
       image: debian:bookworm
     services:
@@ -36,7 +38,7 @@ jobs:
       - name: Setup Rust (rustup)
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source $HOME/.cargo/env
+          . $HOME/.cargo/env
           rustup default stable
 
       - name: Setup Node.js
@@ -56,7 +58,7 @@ jobs:
 
       - name: Install sqlx-cli
         run: |
-          source $HOME/.cargo/env
+          . $HOME/.cargo/env
           cargo install sqlx-cli --no-default-features --features rustls --version 0.7.0 || true
 
       - name: Wait for Postgres
@@ -79,20 +81,29 @@ jobs:
         env:
           SQLX_OFFLINE: "true"
         run: |
-          source $HOME/.cargo/env
+          . $HOME/.cargo/env
           cargo build --release
 
       - name: Run backend tests
         working-directory: vulnerability-manager
         run: |
-          source $HOME/.cargo/env
+          . $HOME/.cargo/env
           cargo test --all --no-fail-fast
 
       - name: Build frontend
         working-directory: vulnerability-manager-frontend
+        env:
+          CI: "false"
         run: |
           npm ci
+          npm audit --audit-level=critical
           npm run build
+
+      - name: Run frontend tests
+        working-directory: vulnerability-manager-frontend
+        env:
+          CI: "true"
+        run: npm test -- --watchAll=false --passWithNoTests
 
       - name: Basic smoke check
         run: |

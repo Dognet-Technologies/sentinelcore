@@ -1,0 +1,172 @@
+# Struttura Progetto Front-end per Vulnerability Manager
+
+## Stack Tecnologico
+- **React** 18+ con TypeScript
+- **Material-UI (MUI)** v5 per componenti UI
+- **React Router** v6 per routing
+- **Axios** per chiamate API
+- **React Query** per gestione stato server
+- **React Hook Form** per form
+- **Recharts** per grafici
+- **Cytoscape.js** per visualizzazione rete
+
+## Struttura delle Cartelle
+
+```
+vulnerability-manager-frontend/
+├── public/
+│   ├── index.html
+│   └── favicon.ico
+├── src/
+│   ├── api/
+│   │   ├── auth.ts
+│   │   ├── teams.ts
+│   │   ├── vulnerabilities.ts
+│   │   ├── assets.ts
+│   │   ├── reports.ts
+│   │   ├── plugins.ts
+│   │   └── client.ts
+│   ├── components/
+│   │   ├── common/
+│   │   │   ├── Layout.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   ├── LoadingSpinner.tsx
+│   │   │   └── ErrorBoundary.tsx
+│   │   ├── vulnerabilities/
+│   │   │   ├── VulnerabilityList.tsx
+│   │   │   ├── VulnerabilityDetail.tsx
+│   │   │   ├── VulnerabilityForm.tsx
+│   │   │   └── VulnerabilityFilters.tsx
+│   │   ├── teams/
+│   │   │   ├── TeamList.tsx
+│   │   │   ├── TeamForm.tsx
+│   │   │   └── TeamMembers.tsx
+│   │   ├── network/
+│   │   │   ├── NetworkMap.tsx
+│   │   │   └── AssetNode.tsx
+│   │   ├── reports/
+│   │   │   ├── ReportGenerator.tsx
+│   │   │   └── ReportViewer.tsx
+│   │   └── plugins/
+│   │       ├── PluginManager.tsx
+│   │       └── PluginConfig.tsx
+│   ├── contexts/
+│   │   ├── AuthContext.tsx
+│   │   └── ThemeContext.tsx
+│   ├── hooks/
+│   │   ├── useAuth.ts
+│   │   ├── useVulnerabilities.ts
+│   │   ├── useTeams.ts
+│   │   └── useNotifications.ts
+│   ├── pages/
+│   │   ├── Login.tsx
+│   │   ├── Dashboard.tsx
+│   │   ├── Vulnerabilities.tsx
+│   │   ├── Teams.tsx
+│   │   ├── Assets.tsx
+│   │   ├── Reports.tsx
+│   │   ├── Plugins.tsx
+│   │   └── Settings.tsx
+│   ├── types/
+│   │   ├── user.ts
+│   │   ├── team.ts
+│   │   ├── vulnerability.ts
+│   │   ├── asset.ts
+│   │   ├── report.ts
+│   │   └── plugin.ts
+│   ├── utils/
+│   │   ├── constants.ts
+│   │   ├── helpers.ts
+│   │   └── validators.ts
+│   ├── App.tsx
+│   ├── index.tsx
+│   └── theme.ts
+├── package.json
+├── tsconfig.json
+├── .env
+└── .gitignore
+```
+
+## Componenti Principali
+
+### 1. Layout Principale
+- **Header**: Logo, notifiche, profilo utente
+- **Sidebar**: Navigazione principale (collassabile)
+- **Content Area**: Area centrale con le viste
+
+### 2. Dashboard
+- Statistiche vulnerabilità (critiche, alte, medie, basse)
+- Grafici trend vulnerabilità
+- Attività recenti
+- Team performance
+
+### 3. Vista Vulnerabilità
+- Tabella con filtri avanzati
+- Dettagli vulnerabilità in pannello laterale
+- Azioni bulk (assegna team, cambia stato)
+- Export dati
+
+### 4. Gestione Team
+- Lista team con membri
+- Creazione/modifica team
+- Configurazione notifiche (Slack, Telegram, Email)
+
+### 5. Mappa di Rete
+- Visualizzazione interattiva degli asset
+- Vulnerabilità per asset
+- Filtri per tipo asset e severità
+
+### 6. Reports
+- Generazione report personalizzati
+- Template predefiniti
+- Export in vari formati
+
+### 7. Plugin Manager
+- Lista plugin installati
+- Attivazione/disattivazione
+- Configurazione plugin
+
+## Flusso di Autenticazione
+1. Login con username/password
+2. Ricezione JWT token
+3. Storage in localStorage/sessionStorage
+4. Refresh token automatico
+5. Redirect basato su ruolo (Admin/TeamLeader/User)
+
+## Gestione Stato
+- **React Query** per dati server (cache, refetch, optimistic updates)
+- **Context API** per stato globale (auth, tema)
+- **Local state** per UI components
+
+## Routing
+```typescript
+- / (redirect to /dashboard)
+- /login
+- /dashboard
+- /vulnerabilities
+  - /vulnerabilities/:id
+- /teams
+  - /teams/:id
+- /assets
+  - /assets/:id
+- /reports
+  - /reports/new
+  - /reports/:id
+- /plugins
+- /settings
+```
+
+## Prossimi Passi
+1. Inizializzare il progetto con Create React App + TypeScript
+2. Installare le dipendenze necessarie
+3. Configurare MUI theme personalizzato
+4. Implementare autenticazione e routing protetto
+5. Creare i componenti base del layout
+6. Implementare le API calls
+7. Sviluppare le viste principali
+
+
+mkdir vulnerability-manager-frontend
+cd vulnerability-manager-frontend
+npx create-react-app . --template typescript
