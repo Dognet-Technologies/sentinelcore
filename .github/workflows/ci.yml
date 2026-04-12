@@ -76,10 +76,18 @@ jobs:
         run: |
           echo "DATABASE_URL=${DATABASE_URL}" >> $GITHUB_ENV
 
-      - name: Regenerate SQLx cache (if needed)
+      - name: Run DB migrations
+        working-directory: vulnerability-manager
         run: |
-          chmod +x scripts/deployment/regenerate-sqlx-cache.sh || true
-          scripts/deployment/regenerate-sqlx-cache.sh || echo "Regenerate script exited non-zero (ok to continue if cache already present)"
+          . $HOME/.cargo/env
+          sqlx database create || true
+          sqlx migrate run
+
+      - name: Regenerate SQLx cache
+        working-directory: vulnerability-manager
+        run: |
+          . $HOME/.cargo/env
+          cargo sqlx prepare -- --lib
 
       - name: Build backend (release)
         working-directory: vulnerability-manager
