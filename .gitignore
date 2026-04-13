@@ -49,6 +49,9 @@ uploads/*
 *.swp
 *~
 
+# nmap scan outputs
+vulnerability-manager/result*.xml
+
 # External (legacy)
 Documentazione/
 Robaccia/
