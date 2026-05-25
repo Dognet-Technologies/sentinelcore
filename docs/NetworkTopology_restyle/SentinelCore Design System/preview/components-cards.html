@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card / Panel States</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+.kcard{background:var(--sc-bg-paper);border:1px solid var(--sc-border-subtle);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;transition:all 200ms cubic-bezier(0.4,0,0.2,1);}
+.kcard-h{display:flex;align-items:center;justify-content:space-between;}
+.kcard--hover{background:var(--sc-bg-paper-hi);border-color:var(--sc-border-cyan);box-shadow:0 6px 20px rgba(0,163,224,0.15);}
+.kcard--selected{background:var(--sc-bg-paper-hi);border:2px solid var(--sc-cyan-500);padding:15px 17px;box-shadow:0 0 20px rgba(0,163,224,0.25);}
+.kcard--ghost{background:transparent;border:1px dashed var(--sc-border-default);align-items:center;justify-content:center;min-height:74px;}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;font-weight:600;font-family:var(--sc-font-sans);}
+.chip-outline{background:transparent;color:var(--sc-fg-secondary);border:1px solid var(--sc-border-default);font-weight:500;}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="card">
+
+<div class="grid" style="grid-template-columns:1fr 1fr; gap:14px;">
+  <div class="kcard">
+    <div class="kcard-h">
+      <div class="sc-h6">Device · idle</div>
+      <span class="chip chip-outline" style="font-size:11px;"><span class="dot" style="background:#4CAF50;"></span>online</span>
+    </div>
+    <div class="sc-body-sm">Linux server · 192.168.1.42</div>
+  </div>
+  <div class="kcard kcard--hover">
+    <div class="kcard-h">
+      <div class="sc-h6">Device · hover</div>
+      <span class="chip chip-outline" style="font-size:11px;"><span class="dot" style="background:#FF9800;"></span>warning</span>
+    </div>
+    <div class="sc-body-sm">Firewall · 192.168.1.1</div>
+  </div>
+  <div class="kcard kcard--selected">
+    <div class="kcard-h">
+      <div class="sc-h6">Device · selected</div>
+      <span class="chip chip-outline" style="font-size:11px;"><span class="dot" style="background:#F44336;"></span>critical</span>
+    </div>
+    <div class="sc-body-sm">DB Cluster · 10.0.2.15</div>
+  </div>
+  <div class="kcard kcard--ghost">
+    <div class="sc-body-sm" style="color:var(--sc-fg-tertiary);">Empty / dashed — drop target</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
