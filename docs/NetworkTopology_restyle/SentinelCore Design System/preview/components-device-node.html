@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Device Node Variants</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+.nv-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:24px; }
+.nv-col { display:flex; flex-direction:column; gap:12px; align-items:center; padding:12px 0; border:1px solid var(--sc-border-subtle); border-radius:10px; background:radial-gradient(ellipse at 50% 30%, rgba(0,163,224,0.04) 0%, transparent 70%), var(--sc-bg-deep); position:relative; }
+.nv-row { display:flex; gap:32px; align-items:center; }
+.nv-tag { font-family:var(--sc-font-mono); font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; padding:3px 10px; border-radius:999px; background:var(--sc-primary-soft); color:var(--sc-cyan-300); border:1px solid var(--sc-border-cyan); }
+.nv-meta { font-family:var(--sc-font-sans); font-size:11px; color:var(--sc-fg-secondary); text-align:center; max-width:280px; line-height:1.5; }
+.nv-pick { position:absolute; top:8px; right:10px; font-family:var(--sc-font-mono); font-size:9.5px; letter-spacing:0.1em; color:var(--sc-fg-tertiary); text-transform:uppercase; }
+</style>
+</head>
+<body>
+<div class="card" style="padding:22px 24px;">
+
+<div class="nv-grid">
+
+  <!-- HEX -->
+  <div class="nv-col">
+    <span class="nv-pick">user-selectable</span>
+    <div class="nv-row">
+      <svg width="90" height="90" viewBox="-40 -40 80 80">
+        <defs>
+          <linearGradient id="gh-shine" x1="0.15" y1="0" x2="0.85" y2="1">
+            <stop offset="0%" stop-color="#fff" stop-opacity="0.38"/>
+            <stop offset="45%" stop-color="#fff" stop-opacity="0.06"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0.28"/>
+          </linearGradient>
+        </defs>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="#000" opacity="0.5" transform="translate(0,3)"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="#1565C0" fill-opacity="0.78"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="url(#gh-shine)"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.75"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="none" stroke="#4CAF50" stroke-width="1.5" stroke-opacity="0.9"/>
+        <image href="../assets/icons/router.svg" x="-15" y="-15" width="30" height="30" style="filter:brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0,0,0,0.5)); opacity:0.95;"/>
+      </svg>
+      <svg width="90" height="90" viewBox="-40 -40 80 80">
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="#000" opacity="0.5" transform="translate(0,3)"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="#7B1FA2" fill-opacity="0.78"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="url(#gh-shine)"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.75"/>
+        <polygon points="0,-26 22.5,-13 22.5,13 0,26 -22.5,13 -22.5,-13" fill="none" stroke="#F44336" stroke-width="1.5" stroke-opacity="0.9"/>
+        <image href="../assets/icons/database.svg" x="-15" y="-15" width="30" height="30" style="filter:brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0,0,0,0.5)); opacity:0.95;"/>
+      </svg>
+    </div>
+    <div class="nv-tag">hex</div>
+    <div class="nv-meta">Beveled hexagon with glass shine.<br/>Geometric, rhymes with the SentinelCore sigil.</div>
+  </div>
+
+  <!-- ORB -->
+  <div class="nv-col">
+    <span class="nv-pick">user-selectable</span>
+    <div class="nv-row">
+      <svg width="90" height="90" viewBox="-40 -40 80 80">
+        <defs>
+          <radialGradient id="go-light" cx="0.3" cy="0.25" r="0.65">
+            <stop offset="0%" stop-color="#fff" stop-opacity="0.55"/>
+            <stop offset="45%" stop-color="#fff" stop-opacity="0.06"/>
+            <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="go-rim" cx="0.75" cy="0.78" r="0.55">
+            <stop offset="0%" stop-color="#000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0.55"/>
+          </radialGradient>
+        </defs>
+        <ellipse cy="28" rx="20" ry="3.5" fill="#000" opacity="0.5"/>
+        <circle r="23" fill="#1565C0" fill-opacity="0.85"/>
+        <circle r="23" fill="url(#go-rim)"/>
+        <circle r="23" fill="url(#go-light)"/>
+        <ellipse cx="-8" cy="-11" rx="6.5" ry="3.2" fill="#fff" opacity="0.45"/>
+        <ellipse cx="-6" cy="-9" rx="2.5" ry="1.4" fill="#fff" opacity="0.7"/>
+        <circle r="24.5" fill="none" stroke="#4CAF50" stroke-width="1.25" stroke-opacity="0.85"/>
+        <image href="../assets/icons/router.svg" x="-13" y="-14" width="26" height="26" style="filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,0.6)); opacity:0.92;"/>
+      </svg>
+      <svg width="90" height="90" viewBox="-40 -40 80 80">
+        <ellipse cy="28" rx="20" ry="3.5" fill="#000" opacity="0.5"/>
+        <circle r="23" fill="#7B1FA2" fill-opacity="0.85"/>
+        <circle r="23" fill="url(#go-rim)"/>
+        <circle r="23" fill="url(#go-light)"/>
+        <ellipse cx="-8" cy="-11" rx="6.5" ry="3.2" fill="#fff" opacity="0.45"/>
+        <ellipse cx="-6" cy="-9" rx="2.5" ry="1.4" fill="#fff" opacity="0.7"/>
+        <circle r="24.5" fill="none" stroke="#F44336" stroke-width="1.25" stroke-opacity="0.85"/>
+        <image href="../assets/icons/database.svg" x="-13" y="-14" width="26" height="26" style="filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,0.6)); opacity:0.92;"/>
+      </svg>
+    </div>
+    <div class="nv-tag">orb</div>
+    <div class="nv-meta">Glass sphere with specular highlight and contact shadow.<br/>The most volumetric / 3D option.</div>
+  </div>
+
+</div>
+
+<div style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--sc-border-faint); display:flex; align-items:center; justify-content:space-between; gap:16px;">
+  <div class="lbl-meta">User preference · persists via localStorage · toggle lives at the bottom-centre of the topology canvas</div>
+  <div class="lbl-token">key: sc:nodeVariant</div>
+</div>
+
+</div>
+</body>
+</html>

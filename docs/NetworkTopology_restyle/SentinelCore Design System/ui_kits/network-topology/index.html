@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=1440, initial-scale=1"/>
+<title>SentinelCore · Network Topology</title>
+<link rel="icon" href="../../assets/logo.svg" type="image/svg+xml"/>
+<link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="data.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="AppShell.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="NodeVariants.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="TopologyCanvas.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="DetailPanel.jsx" data-presets="env,react"></script>
+<script type="text/babel" src="ScanTerminal.jsx" data-presets="env,react"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useMemo } = React;
+
+function ViewModeToggle({ mode, onChange }) {
+  const modes = [['grid','Subnet Grid'],['tree','Hierarchical'],['circle','Circular']];
+  return (
+    <div style={{ display:'flex', gap:2 }}>
+      {modes.map(([k, title]) => (
+        <button key={k}
+                className={`icon-btn ${mode===k ? 'active' : ''}`}
+                title={title}
+                onClick={() => onChange(k)}>
+          <Icon name={k}/>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NodeStyleToggle({ variant, onChange }) {
+  const variants = [
+    ['hex',  'Hex tile — beveled hexagon, glass shine'],
+    ['orb',  'Glass orb — specular sphere, contact shadow'],
+  ];
+  return (
+    <div className="node-style-toggle">
+      <span className="nst-label">Node style</span>
+      {variants.map(([k, title]) => (
+        <button key={k}
+                className={`nst-btn ${variant===k ? 'active' : ''}`}
+                title={title}
+                onClick={() => onChange(k)}>
+          {k}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function App() {
+  const [selectedId, setSelectedId] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [viewMode, setViewMode] = useState('grid');
+  const [terminalOpen, setTerminalOpen] = useState(false);
+  const [animateLinks, setAnimateLinks] = useState(true);
+  // User preference — persists across reloads via localStorage.
+  const [nodeVariant, setNodeVariantRaw] = useState(() => {
+    try { return localStorage.getItem('sc:nodeVariant') || 'hex'; } catch (e) { return 'hex'; }
+  });
+  const setNodeVariant = (v) => {
+    setNodeVariantRaw(v);
+    try { localStorage.setItem('sc:nodeVariant', v); } catch (e) {}
+  };
+
+  const selected = useMemo(
+    () => DEVICES.find(d => d.id === selectedId) || null,
+    [selectedId]
+  );
+
+  // Stats from data
+  const stats = useMemo(() => {
+    const online = DEVICES.filter(d => d.status === 'online').length;
+    const total = DEVICES.length;
+    const critical = DEVICES.filter(d => d.severity === 'critical').length;
+    const warning  = DEVICES.filter(d => d.severity === 'high' || d.severity === 'medium').length;
+    const totalVulns = DEVICES.reduce((s, d) => s + d.vulns.total, 0);
+    return { online, total, critical, warning, totalVulns };
+  }, []);
+
+  return (
+    <div className="app">
+      <AppBar/>
+      <Sidebar/>
+      <main className={`main ${selected ? 'with-panel' : ''}`}>
+        <section className="topo-card">
+          <header className="topo-header">
+            <h2 className="topo-title">Network Topology</h2>
+            <span className="chip chip-success">{stats.online}/{stats.total} Online</span>
+            {stats.critical > 0 && <span className="chip chip-critical">{stats.critical} Critical</span>}
+            {stats.warning > 0  && <span className="chip chip-warning">{stats.warning} Warning</span>}
+            <span className="chip chip-outline"><span className="chip-dot" style={{ background:'var(--sc-cyan-400)' }}/>arp-scan · 4m ago</span>
+
+            <div className="topo-toolbar">
+              <ViewModeToggle mode={viewMode} onChange={setViewMode}/>
+              <span style={{ width:1, height:20, background:'var(--sc-border-subtle)', margin:'0 4px' }}/>
+              <button className="icon-btn" onClick={() => setZoom(z => Math.max(0.5, z - 0.15))} title="Zoom out"><Icon name="zoomOut"/></button>
+              <button className="icon-btn" onClick={() => setZoom(1)} title="Fit"><Icon name="fit"/></button>
+              <button className="icon-btn" onClick={() => setZoom(z => Math.min(2.5, z + 0.15))} title="Zoom in"><Icon name="zoomIn"/></button>
+              <span style={{ width:1, height:20, background:'var(--sc-border-subtle)', margin:'0 4px' }}/>
+              <button className={`icon-btn ${terminalOpen ? 'active' : ''}`}
+                      onClick={() => setTerminalOpen(t => !t)}
+                      title="Toggle scan log"><Icon name="terminal"/></button>
+              <button className="icon-btn" onClick={() => setTerminalOpen(true)} title="Run scan"><Icon name="play"/></button>
+              <button className="icon-btn" title="Refresh"><Icon name="refresh"/></button>
+              <button className="icon-btn" title="Export"><Icon name="download"/></button>
+              <button className="icon-btn" title="Fullscreen"><Icon name="full"/></button>
+            </div>
+          </header>
+
+          <div className="canvas-wrap">
+            {/* HUD: help */}
+            <div className="hud hud-help">
+              <kbd>Ctrl</kbd>+click multi-select &nbsp;·&nbsp; <kbd>drag</kbd> move node &nbsp;·&nbsp; <kbd>right-click</kbd> menu
+            </div>
+
+            {/* HUD: live stats */}
+            <div className="hud hud-stats">
+              <div className="stat">
+                <div className="stat-val ok">{stats.online}</div>
+                <div className="stat-lbl">Online</div>
+              </div>
+              <div className="stat-divider"/>
+              <div className="stat">
+                <div className="stat-val crit">{stats.critical}</div>
+                <div className="stat-lbl">Critical</div>
+              </div>
+              <div className="stat-divider"/>
+              <div className="stat">
+                <div className="stat-val">{stats.totalVulns}</div>
+                <div className="stat-lbl">CVEs</div>
+              </div>
+            </div>
+
+            {/* HUD: legend */}
+            <div className="hud hud-legend">
+              <div className="hud-legend-title">Status</div>
+              <div className="legend-row"><span className="dot" style={{ background:'#4CAF50' }}/>online</div>
+              <div className="legend-row"><span className="dot" style={{ background:'#F44336' }}/>offline / critical</div>
+              <div className="legend-row"><span className="dot" style={{ background:'#FF9800' }}/>maintenance / warning</div>
+              <div className="legend-row"><span className="dot" style={{ background:'#757575' }}/>unknown</div>
+            </div>
+
+            {/* HUD: zoom indicator */}
+            <div className="hud hud-zoom">
+              <span style={{ fontFamily:'var(--sc-font-mono)', fontSize:11, color:'var(--sc-fg-tertiary)', padding:'0 6px' }}>
+                {Math.round(zoom * 100)}%
+              </span>
+            </div>
+
+            {/* Node-style picker — bottom centre */}
+            <NodeStyleToggle variant={nodeVariant} onChange={setNodeVariant}/>
+
+            <TopologyCanvas selectedId={selectedId}
+                            onSelect={setSelectedId}
+                            zoom={zoom}
+                            animateLinks={animateLinks}
+                            nodeVariant={nodeVariant}/>
+
+            <ScanTerminal open={terminalOpen} onClose={() => setTerminalOpen(false)}/>
+          </div>
+        </section>
+
+        {selected && <DetailPanel device={selected} onClose={() => setSelectedId(null)}/>}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
