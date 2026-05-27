@@ -1,4 +1,6 @@
 name: CI
+permissions:
+  contents: read
 
 on:
   push:
@@ -28,13 +30,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Install system deps (Debian)
         run: |
           apt-get update
           apt-get install -y build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git ruby ruby-dev gcc make
 
+      - name: Set HOME for container
+        run: echo "HOME=/root" >> $GITHUB_ENV
+    
       - name: Setup Rust (rustup)
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -42,12 +47,12 @@ jobs:
           rustup default stable
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
 
       - name: Cache cargo and node modules
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -59,22 +64,30 @@ jobs:
       - name: Install sqlx-cli
         run: |
           . $HOME/.cargo/env
-          cargo install sqlx-cli --no-default-features --features rustls --version 0.7.0 || true
+          cargo install sqlx-cli --no-default-features --features rustls,postgres --version 0.7.4 || true
 
       - name: Wait for Postgres
         run: |
-          for i in {1..30}; do pg_isready -h localhost -p 5432 && break || sleep 1; done
+          for i in $(seq 1 30); do pg_isready -h postgres -p 5432 -U postgres && break || sleep 1; done
 
       - name: Set DATABASE_URL
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
         run: |
           echo "DATABASE_URL=${DATABASE_URL}" >> $GITHUB_ENV
 
-      - name: Regenerate SQLx cache (if needed)
+      - name: Run DB migrations
+        working-directory: vulnerability-manager
         run: |
-          chmod +x scripts/deployment/regenerate-sqlx-cache.sh || true
-          scripts/deployment/regenerate-sqlx-cache.sh || echo "Regenerate script exited non-zero (ok to continue if cache already present)"
+          . $HOME/.cargo/env
+          sqlx database create || true
+          sqlx migrate run
+
+      - name: Regenerate SQLx cache
+        working-directory: vulnerability-manager
+        run: |
+          . $HOME/.cargo/env
+          cargo sqlx prepare -- --lib
 
       - name: Build backend (release)
         working-directory: vulnerability-manager
