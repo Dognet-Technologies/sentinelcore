@@ -3,12 +3,17 @@ name: Security Audit
 on:
   schedule:
     - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  # Security audit gira sulle dev line (develop/*, release/*), NON sulla
+  # main. main riceve solo merge curati dopo verifica manuale, gli alert
+  # vengono filtrati a monte qui.
   push:
+    branches: [ "develop/*", "release/*" ]
     paths:
       - '**/package*.json'
       - '**/Cargo.toml'
       - '**/Cargo.lock'
   pull_request:
+    branches: [ "develop/*", "release/*" ]
     paths:
       - '**/package*.json'
       - '**/Cargo.toml'

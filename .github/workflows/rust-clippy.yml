@@ -11,10 +11,13 @@ name: rust-clippy analyze
 
 on:
   push:
-    branches: [ "main" ]
+    # Security scanning vive sulle dev line, NON sulla main. main riceve
+    # solo merge curati da develop dopo verifica manuale, dove gli alert
+    # SARIF/CodeQL sono già stati visti e processati.
+    branches: [ "develop/*", "release/*" ]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches: [ "develop/*", "release/*" ]
   schedule:
     - cron: '33 1 * * 4'
 
