@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chips & Badges</title>
+<link rel="stylesheet" href="_card.css">
+<style>
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12.5px;font-weight:600;font-family:var(--sc-font-sans);border:1px solid transparent;}
+.chip-success{background:#4CAF50;color:#fff;}
+.chip-critical{background:#F44336;color:#fff;}
+.chip-warning{background:#FF9800;color:#fff;}
+.chip-info{background:#1976d2;color:#fff;}
+.chip-neutral{background:rgba(255,255,255,0.08);color:var(--sc-fg-secondary);border-color:var(--sc-border-default);}
+.chip-outline{background:transparent;color:var(--sc-fg-secondary);border-color:var(--sc-border-default);font-weight:500;}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.badge{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;color:#fff;}
+</style>
+</head>
+<body>
+<div class="card">
+
+<div class="col" style="gap:14px;">
+  <div class="row" style="gap:8px; flex-wrap:wrap;">
+    <span class="chip chip-success">89/127 Online</span>
+    <span class="chip chip-critical">3 Critical</span>
+    <span class="chip chip-warning">7 Warning</span>
+    <span class="chip chip-info">2 Selected</span>
+    <span class="chip chip-neutral">Unknown</span>
+  </div>
+  <div class="row" style="gap:8px; flex-wrap:wrap;">
+    <span class="chip chip-outline"><span class="dot" style="background:#4CAF50;"></span>online</span>
+    <span class="chip chip-outline"><span class="dot" style="background:#F44336;"></span>offline</span>
+    <span class="chip chip-outline"><span class="dot" style="background:#FF9800;"></span>maintenance</span>
+    <span class="chip chip-outline"><span class="dot" style="background:var(--sc-cyan-400);"></span>scanning</span>
+  </div>
+  <div class="row" style="gap:8px;">
+    <span class="badge badge-circ" style="background:#F44336;">3</span>
+    <span class="badge badge-circ" style="background:#FF9800;">12</span>
+    <span class="badge badge-circ" style="background:#4CAF50;">42</span>
+    <span class="lbl-meta">vulnerability badge — 20px</span>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

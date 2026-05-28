@@ -1,11 +1,86 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
+
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # Frontend NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/vulnerability-manager-frontend"
+    # Le PR di Dependabot mirano alla dev line corrente, NON a main.
+    # main riceve solo merge curati da develop dopo verifica manuale.
+    # Aggiornare questo valore a ogni nuova release line (es. develop/v1.0.2).
+    target-branch: "develop/v1.0.1"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 10
+    groups:
+      mui:
+        patterns:
+          - "@mui/*"
+          - "@emotion/*"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-*"
+          - "@types/react*"
+      three:
+        patterns:
+          - "three"
+          - "@react-three/*"
+      security-patches:
+        update-types:
+          - "patch"
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Backend Rust/Cargo dependencies
+  - package-ecosystem: "cargo"
+    directory: "/vulnerability-manager"
+    target-branch: "develop/v1.0.1"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 10
+    groups:
+      axum-ecosystem:
+        patterns:
+          - "axum*"
+          - "tower*"
+          - "hyper*"
+      tokio-ecosystem:
+        patterns:
+          - "tokio*"
+      security-patches:
+        update-types:
+          - "patch"
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop/v1.0.1"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Rome"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
