@@ -1,773 +1,461 @@
-# SentinelCore - Enterprise Vulnerability Management Platform
+<div align="center">
 
-## => IL SISTEMA È ANCORA INSTABILE, NON USARE IN PRODUZIONE, CI SONO ANCORA DIVERSI ERRORI DA CORREGGERE, ANCHE CON DOCKER <=
+# SentinelCore
+
+**Vulnerability Management Platform for Security Teams**
+
+Track. Prioritize. Remediate. — across every asset on your network, with the audit trail your auditors expect.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
-[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
+[![Axum](https://img.shields.io/badge/Axum-0.6-blueviolet.svg)](https://github.com/tokio-rs/axum)
+[![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
+[![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
+[![Version](https://img.shields.io/badge/version-1.0.1-success.svg)]()
 
-**SentinelCore** is a comprehensive, production-ready vulnerability management platform designed for security teams to efficiently track, prioritize, and remediate security vulnerabilities across their infrastructure.
+</div>
 
-**Feature Completeness: 100%** | **Production Ready: Yes** | **Active Development: Yes**
-
----
-
-## ✨ Key Features
-
-### 🎯 Intelligent Risk Management (Quick Win #1)
-- **Advanced Risk Scoring Formula:**
-  ```
-  Risk Score (0-100) =
-    (CVSS Base × 0.30) +
-    (EPSS Score × 0.25) +
-    (Business Impact × 0.25) +
-    (Asset Exposure × 0.15) +
-    (Exploit Availability × 0.05)
-  ```
-- **Automatic Risk Tiers:** Critical, High, Medium, Low, Info
-- **Priority Overrides:** Auto-escalate zero-days, ransomware-targeted, actively exploited CVEs
-- **Business Impact Scoring:** Asset criticality (Critical/High/Medium/Low), sensitive data detection, revenue impact estimation
-- **Asset Exposure Analysis:** Network position (Internet-facing, DMZ, Internal, Isolated)
-- **Exploit Intelligence:** Metasploit module detection, ExploitDB availability, CISA KEV catalog integration
-
-### ⏰ SLA Automation (Quick Win #2)
-- **Automatic Deadline Calculation:**
-  - Critical: 1 day (24 hours)
-  - High: 7 days (1 week)
-  - Medium: 30 days (1 month)
-  - Low: 90 days (3 months)
-- **Breach Detection:** Real-time SLA breach monitoring
-- **Automated Alerts:** 75%, 90%, 100% elapsed warnings
-- **Compliance Ready:** Full audit trail for compliance reporting
-
-### 💬 Team Collaboration (Quick Win #3)
-- **Built-in Comments System:**
-  - @mentions with user notifications
-  - Comment threading (replies to comments)
-  - Attachments support (images, PDFs, logs)
-  - Internal vs customer-visible comments
-  - Edit tracking and soft deletes
-- **Real-time Collaboration:** No need for external chat tools
-- **Context Preservation:** All discussions tied to vulnerabilities
-
-### 🔔 Smart Notifications (Quick Win #4)
-- **Rule-Based Routing:** Intelligent notification distribution based on conditions
-- **Multi-Channel Support:** Email, Slack, Telegram, Teams, Webhook, PagerDuty, OpsGenie
-- **8 Pre-configured Rules:**
-  1. Critical Vulnerabilities Alert (immediate)
-  2. SLA Breach Warning at 75%
-  3. SLA Breach Alert at 100%
-  4. High Severity Vulnerabilities
-  5. Zero-Day Alert
-  6. Ransomware Targeted Alert
-  7. Vulnerability Assigned notification
-  8. Daily Summary Digest (batch mode)
-- **Anti-Spam Features:**
-  - Throttling (minimum time between notifications)
-  - Quiet hours configuration
-  - Batch mode for low-priority events
-- **Custom Templates:** Variable substitution for personalized messages
-
-### 🎫 JIRA Integration (Quick Win #5)
-- **Bi-Directional Sync:** SentinelCore ↔ JIRA status synchronization
-- **Auto-Ticketing:** Automatic ticket creation based on rules
-- **Priority Mapping:** Critical → Highest, High → High, etc.
-- **Rich Context:** Auto-generated descriptions with CVE, CVSS, Risk Score, Asset info
-- **Custom Field Mapping:** Map SentinelCore fields to JIRA custom fields
-- **Multi-Instance Support:** Connect multiple JIRA projects/instances
-
-### 🔒 Enterprise Security
-- **Authentication:** JWT with httpOnly cookies (XSS protection)
-- **Authorization:** Role-Based Access Control (Admin, Team Leader, User)
-- **Security Headers:** HSTS, CSP, X-Frame-Options, X-Content-Type-Options
-- **CORS:** Whitelist configuration with strict origin validation
-- **Rate Limiting:** Brute force protection with configurable limits
-- **CSRF Protection:** Token-based CSRF prevention
-- **2FA Support:** Two-Factor Authentication with TOTP
-- **Session Management:** Multi-session tracking with remote revocation
-- **Audit Logging:** Complete audit trail for compliance
-
-### 👥 Team Management
-- **Multi-Team Support:** Organize users into security teams
-- **Workload Dashboard:** Track team capacity and task distribution
-- **Assignment Tracking:** Vulnerability assignment to teams or individuals
-- **Team Performance Metrics:** Response times, resolution rates, SLA compliance
-
-### 🔌 Scanner Integration (7/13 Scanners)
-Import vulnerability data from major security scanners:
-- ✅ **Qualys** - XML report import
-- ✅ **Nessus** - .nessus XML format
-- ✅ **Burp Suite** - JSON issue export
-- ✅ **OpenVAS/GVM** - XML reports
-- ✅ **Nexpose/InsightVM** - XML format
-- ✅ **OWASP ZAP** - XML/JSON report import with NSE script support
-- ✅ **Nmap** - XML output parsing with CVE extraction
-
-### 🌐 Network Discovery
-- **Built-in Scanning:** Network discovery and vulnerability scanning
-- **Device Management:** Edit devices, bulk operations, multi-select
-- **Topology Visualization:** Network map with asset relationships
-- **Automated Remediation:** Workflow automation for common fixes
-
-### 📊 Reporting & Analytics
-- **Dashboard:** Real-time vulnerability statistics and trends
-- **Executive Reports:** Management-ready reports with KPIs
-- **Risk Heatmaps:** Visual representation of risk by team/asset
-- **Compliance Mapping:** Map vulnerabilities to compliance frameworks
-- **Export Formats:** PDF, CSV, Excel
+> **Stability disclaimer.** SentinelCore is in **beta**. Core flows are stable on a single-host deployment with a dedicated PostgreSQL instance. Multi-tenant, HA, and containerized deployments are not yet supported. Use the issue tracker for production blockers.
 
 ---
 
-## 🚀 Quick Start
+## What v1.0.1 brings
 
-### Prerequisites
+The 1.0.1 release line ships a full **Network Topology restyle** plus a chain of operational improvements pulled from real deployment friction:
 
-**Option A: Automated Installation (Recommended)**
-- Debian 12 (Bookworm) or Ubuntu 22.04+ LTS
-- 4+ CPU cores, 8GB+ RAM, 50GB+ disk space
-- Internet connection for package downloads
+- **Hex/orb device nodes** with per-device-type colour and silhouette icons, link endpoint dots, subnet chips, and HUD overlays — built off the SentinelCore Design System in [`docs/NetworkTopology_restyle/`](docs/NetworkTopology_restyle/).
+- **Slide-in device preview panel** on icon click — the Overview content surfaces without a full navigation, with an "Apri dettaglio completo" button to go deeper.
+- **Inline pencil-per-card editing** on the System Configuration tab (location, owner, criticality, model, OS, …) — no separate management page.
+- **Live scan progress banner** with elapsed time, devices found, and current target — replacing the "did it start? did it die?" guesswork.
+- **Single source of truth for vuln counts** via `assets.network_device_id` — the network discovery pipeline and the scanner import pipeline now agree on the same device row.
+- **Network Ports tab** with aggregated open ports, detected services, and per-port vuln linkage.
+- **Configurable nmap discovery** in Settings: `scan_type`, timing template, port list, custom args — preview is a live nmap command string before save.
+- **File logging system** with retention worker (7d / 500MB rotation, gzip in place), level and destination configurable from Settings.
+- **`sudo NOPASSWD` nmap wrapper** so the discovery worker can do `-sV -O -sU -p-` scans without running the whole service as root.
+- **CSRF middleware self-heal** so restarts don't 403 every in-flight browser session.
 
-**Option B: Manual Installation**
-- PostgreSQL 15+
-- Rust 1.75+ (stable toolchain)
-- Node.js 20+ LTS
-- Nginx or Apache (for production)
+## What it actually does
 
-### Installation Method 1: One-Liner Install ⚡ (Fastest!)
+SentinelCore is built around a single loop:
 
-**Install SentinelCore with a single command:**
-
-```bash
-curl -sSL https://raw.githubusercontent.com/Dognet-Technologies/sentinelcore/main/scripts/quick-install.sh | sudo bash
+```
+discover → import → score → assign → remediate → report
 ```
 
-**What it installs:**
-- ✅ PostgreSQL 15 with sentinelcore_db database
-- ✅ Nginx reverse proxy (port 80 → 8080)
-- ✅ Node.js 20 LTS (for frontend build)
-- ✅ Rust stable toolchain (for backend compile)
-- ✅ System dependencies (libpq-dev, libssl-dev, pkg-config)
-- ✅ SentinelCore backend (compiled from source)
-- ✅ SentinelCore frontend (production build)
-- ✅ Systemd service configuration
-- ✅ Database migrations (all 16 migrations)
-- ✅ Default admin user
+Each step has a real handler, a real table, and a real UI — not a dashboard tile masquerading as a feature.
 
-**Installation time:** ~20 minutes (depends on CPU and internet speed)
+### Discovery and topology
 
-**After installation:**
-```bash
-# Access web UI
-http://<your-server-ip>
+- Built-in `nmap`-based network discovery (configurable scan profile + scheduler).
+- Topology graph with device nodes, link endpoints, and subnet grouping.
+- 10 third-party scanner importers: **Qualys**, **Nessus**, **Burp Suite**, **OpenVAS/GVM**, **Nexpose / InsightVM**, **OWASP ZAP**, **Nmap**, **Nikto**, **Grype**, **Trivy**.
 
-# Default credentials (CHANGE IMMEDIATELY!)
-Email: admin@sentinelcore.local
-Password: admin
+### Risk and SLA
 
-# Service management
-sudo systemctl status sentinelcore
-sudo systemctl restart sentinelcore
-sudo systemctl stop sentinelcore
+- Composite risk score combining CVSS base, EPSS probability, business impact, asset exposure, and exploit availability.
+- Severity tiers map directly onto SLA windows (Critical 1d, High 7d, Medium 30d, Low 90d) with 75% / 90% / 100% breach signals.
+- Override channel for zero-days, ransomware-tied CVEs, and entries in CISA KEV.
 
-# View logs
-sudo journalctl -u sentinelcore -f
-```
+### Collaboration
 
-### Installation Method 2: Manual VM Setup
+- Comment threads on vulnerabilities and remediation plans, with `@mention` notifications.
+- Multi-channel notification routing: email, Slack, Telegram, Microsoft Teams, generic webhook, PagerDuty, OpsGenie.
+- Throttling and quiet-hours to keep the channel signal-to-noise sane.
 
-**Step-by-step installation with full control:**
+### Integrations
 
-```bash
-# 1. Install Debian 12 (headless, no GUI)
-# User: microcyber (or any user)
+- Bi-directional **JIRA** sync (status, priority, custom field mapping).
+- **NVD** enrichment worker for CVE metadata.
+- **EPSS** daily score refresh.
 
-# 2. Update system
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl wget build-essential
+### Authn/z and audit
 
-# 3. Clone repository
-cd /opt
-sudo mkdir sentinelcore
-sudo chown $USER:$USER sentinelcore
-git clone https://github.com/Dognet-Technologies/sentinelcore.git sentinelcore
-cd sentinelcore
-
-# 4. Run automated setup
-sudo chmod +x scripts/deployment/vm-setup-debian13.sh
-sudo ./scripts/deployment/vm-setup-debian13.sh
-```
-
-**See complete guide:** [docs/VM_MANUAL_QUICKSTART.md](docs/VM_MANUAL_QUICKSTART.md)
-
-### Installation Method 3: Debian Package (.deb)
-
-```bash
-# Build .deb package (requires dpkg-deb)
-cd sentinelcore
-./scripts/deployment/build-deb.sh
-
-# Install package
-sudo dpkg -i sentinelcore_1.0.0_amd64.deb
-
-# Fix dependencies if needed
-sudo apt-get install -f
-```
-
-### Default Credentials
-
-**⚠️ SECURITY WARNING: Change immediately after first login!**
-
-- **Email:** `admin@sentinelcore.local`
-- **Password:** `admin`
-
-**First login checklist:**
-1. Change admin password (Settings → Security)
-2. Enable 2FA (Settings → Two-Factor Authentication)
-3. Create additional users (Users → Create User)
-4. Configure CORS (Settings → Security → CORS)
-5. Set up notification channels (Settings → Notifications)
+- JWT auth with `httpOnly` cookies + CSRF token on state-changing requests.
+- RBAC: `admin`, `team_leader`, `user`.
+- TOTP-based 2FA, session tracking with remote revocation.
+- Full audit log for compliance reporting (PCI-DSS, ISO 27001, SOC2, HIPAA tags).
 
 ---
 
-## 🔧 Configuration
+## Architecture
 
-### Environment Variables
+```
+┌──────────────────────────┐         ┌──────────────────────────────────┐
+│   React 18 + MUI 5       │         │       Axum 0.6 (Rust)            │
+│                          │  HTTPS  │                                  │
+│ TanStack Query, axios    │ ──────► │ sqlx 0.8 (compile-time queries)  │
+│ Cytoscape (topology)     │  cookie │ Tower middleware (CSRF, RBAC)    │
+│ ECharts, Recharts        │  + CSRF │ JWT (httpOnly cookie)            │
+└──────────────────────────┘         └────────────┬─────────────────────┘
+                                                  │
+                                                  ▼
+                                     ┌──────────────────────────┐
+                                     │   PostgreSQL 15+         │
+                                     │   117 migrations         │
+                                     │   JSONB, triggers, GIN   │
+                                     └──────────────────────────┘
+                                                  ▲
+                                                  │
+                                     ┌────────────┴─────────────┐
+                                     │   Background workers     │
+                                     │ ─────────────────────────│
+                                     │ auto_rescan              │
+                                     │ device_metrics_snapshot  │
+                                     │ epss_updater             │
+                                     │ jira_sync                │
+                                     │ log_retention            │
+                                     │ notification_digest      │
+                                     │ nvd_api                  │
+                                     │ report_generator         │
+                                     │ sla_checker              │
+                                     └──────────────────────────┘
+```
 
-SentinelCore uses a `.env` file in `vulnerability-manager/` directory:
+**Backend** (`vulnerability-manager/`)
+Rust 1.75+, Axum 0.6, sqlx 0.8 (offline cache committed in `.sqlx/`), tokio 1, jsonwebtoken 10, argon2, tracing + `tracing-appender` for file logs.
+
+**Frontend** (`vulnerability-manager-frontend/`)
+React 18, TypeScript 4.9, MUI 5, TanStack Query 5, Cytoscape (network topology), ECharts + Recharts (analytics), Framer Motion, three.js. Built with Create React App (`react-scripts`).
+
+**Database**
+PostgreSQL 15+, 117 migrations under `vulnerability-manager/migrations/`. Heavy use of `JSONB`, triggers (e.g. `network_devices.assigned_at`), and GIN indexes (e.g. team/user `skills`).
+
+---
+
+## Quick start (single host)
+
+These steps assume a fresh Debian 12 host with `sudo` and a non-root deploy user.
+
+### 1. System dependencies
 
 ```bash
-# Database
-DATABASE_URL=postgresql://sentinelcore:password@localhost/sentinelcore_db
+sudo apt update && sudo apt install -y \
+    git curl build-essential pkg-config \
+    libssl-dev libpq-dev \
+    postgresql-15 nginx nmap
+```
 
-# Server
+### 2. Rust + Node
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+. "$HOME/.cargo/env"
+
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+### 3. Database
+
+```bash
+sudo -u postgres psql -c "CREATE USER sentinelcore WITH PASSWORD 'change-me';"
+sudo -u postgres psql -c "CREATE DATABASE sentinelcore_db OWNER sentinelcore;"
+```
+
+### 4. Backend
+
+```bash
+git clone https://github.com/Dognet-Technologies/sentinelcore.git
+cd sentinelcore/vulnerability-manager
+
+cat > .env <<'EOF'
+DATABASE_URL=postgresql://sentinelcore:change-me@localhost/sentinelcore_db
 SERVER_HOST=0.0.0.0
 SERVER_PORT=8080
-
-# JWT Authentication
-JWT_SECRET=your-secret-key-here-change-this
+JWT_SECRET=replace-this-with-a-long-random-string
 JWT_EXPIRATION=3600
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+LOGGING_LEVEL=info
+LOGGING_DESTINATION=/var/log/sentinelsuite/sentinelcore/app.log
+EOF
 
-# CORS (comma-separated origins)
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://your-domain.com
+cargo install sqlx-cli --no-default-features --features native-tls,postgres
+sqlx migrate run
 
-# Security
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_REQUESTS_PER_MINUTE=100
-RATE_LIMIT_BURST_SIZE=20
-
-# Optional: External integrations
-JIRA_URL=https://your-company.atlassian.net
-JIRA_API_TOKEN=your-token
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+SQLX_OFFLINE=true cargo build --release
 ```
 
-### Nginx Configuration
+### 5. Frontend
 
-Production deployment requires reverse proxy:
+```bash
+cd ../vulnerability-manager-frontend
+npm install
+npm run build      # production bundle ends up in build/
+```
+
+### 6. Discovery permissions
+
+The discovery worker calls `nmap` with raw socket and OS-detection flags. Two options:
+
+- **`sudo NOPASSWD` (default)** — drop a sudoers fragment so the service can call `nmap` and `arp-scan` without a password:
+
+  ```
+  # /etc/sudoers.d/sentinelcore-discovery
+  sentinelcore ALL=(root) NOPASSWD: /usr/bin/nmap, /usr/sbin/arp-scan
+  ```
+
+  Replace `sentinelcore` with whichever user runs the systemd service.
+
+- **File capabilities** — `sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/nmap`. This works on some kernels and silently fails on hardened ones; sudo is the boring reliable path.
+
+### 7. Reverse proxy (Nginx)
 
 ```nginx
-# /etc/nginx/sites-available/sentinelcore
 server {
     listen 80;
-    server_name your-domain.com;
+    server_name your.domain;
 
-    location / {
-        proxy_pass http://localhost:8080;
+    root /opt/sentinelcore/vulnerability-manager-frontend/build;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+
+    location / {
+        try_files $uri /index.html;
+    }
 }
 ```
 
-### SSL/TLS (Production)
+For TLS use `certbot --nginx -d your.domain`.
 
-```bash
-# Install certbot
-sudo apt install -y certbot python3-certbot-nginx
+### 8. First login
 
-# Obtain certificate
-sudo certbot --nginx -d your-domain.com
+Open `http://<host>/`, log in with the seeded admin (printed once by the migration), and **immediately**:
 
-# Auto-renewal is configured automatically
-sudo certbot renew --dry-run
+1. Change the admin password.
+2. Enable 2FA (Settings → Security).
+3. Tighten `CORS_ALLOWED_ORIGINS`.
+4. Configure notification channels.
+5. Set the discovery `subnet` and schedule in Settings → Network Discovery.
+
+---
+
+## Configuration
+
+All runtime configuration lives in `vulnerability-manager/.env`. The keys we touch most:
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `DATABASE_URL` | — | PostgreSQL connection string. Required. |
+| `SERVER_HOST` / `SERVER_PORT` | `0.0.0.0` / `8080` | Listen address. |
+| `JWT_SECRET` | — | HMAC secret for tokens. Required, long random string. |
+| `JWT_EXPIRATION` | `3600` | Token lifetime in seconds. |
+| `CORS_ALLOWED_ORIGINS` | — | Comma-separated origins. |
+| `RATE_LIMIT_ENABLED` | `true` | Per-IP token bucket. |
+| `LOGGING_LEVEL` | `warn` | `error` / `warn` / `info` / `debug`. |
+| `LOGGING_DESTINATION` | `/var/log/sentinelsuite/sentinelcore/app.log` | Log file path; `journal` for systemd journal. |
+| `LOG_RETENTION_DAYS` | `90` | Files older than this are pruned by the `log_retention` worker. |
+
+Discovery and rescan parameters (subnet, schedule, scan type, timing, port list, custom args) are stored in the `auto_rescan_settings` table and edited from **Settings → Network Discovery** in the UI.
+
+---
+
+## Repository layout
+
+```
+sentinelcore/
+├── vulnerability-manager/              # Rust backend (Axum 0.6 + sqlx 0.8)
+│   ├── src/
+│   │   ├── api/                        # Route definitions (186+ endpoints)
+│   │   ├── handlers/                   # Request handlers
+│   │   ├── network/                    # Discovery scanner + topology
+│   │   ├── scanners/                   # 10 third-party importers
+│   │   ├── workers/                    # 9 background tokio workers
+│   │   ├── notifications/              # Email/Slack/Telegram/Teams/...
+│   │   └── middleware/                 # CSRF, RBAC, rate limit
+│   ├── migrations/                     # 117 SQL migrations
+│   ├── .sqlx/                          # Committed compile-time query cache
+│   └── plugins/                        # First-party plugin examples
+│
+├── vulnerability-manager-frontend/     # React 18 + MUI 5 + TanStack Query
+│   ├── src/
+│   │   ├── api/                        # Shared axios client + per-domain APIs
+│   │   ├── components/                 # 43 components (incl. NetworkTopology)
+│   │   ├── pages/                      # 27 pages
+│   │   ├── contexts/                   # Auth + global state
+│   │   └── hooks/
+│   └── public/
+│
+├── docs/
+│   └── NetworkTopology_restyle/        # Design system + UI kit for the topology page
+│
+├── scripts/                            # Deployment + maintenance scripts
+└── packer/                             # VM image build (optional)
 ```
 
 ---
 
-## 📚 Documentation
-
-### User Documentation
-- **[Quick Start VM Guide](docs/VM_MANUAL_QUICKSTART.md)** - Step-by-step VM installation
-- **[User Guide](docs/USER_GUIDE.md)** - Complete user manual
-- **[Scanner Integration](docs/SCANNER_INTEGRATION.md)** - Import scan results
-
-### Administrator Documentation
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment
-- **[Security Guide](docs/SECURITY.md)** - Security hardening
-- **[Backup & Restore](docs/BACKUP_RESTORE.md)** - Data protection
-
-### Developer Documentation
-- **[API Reference](docs/API.md)** - REST API documentation
-- **[Development Guide](docs/development/DEVELOPMENT.md)** - Dev environment setup
-- **[Architecture](docs/development/ARCHITECTURE.md)** - System design
-- **[Contributing](CONTRIBUTING.md)** - Contribution guidelines
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      SentinelCore Stack                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────────┐         ┌─────────────────────┐      │
-│  │  React Frontend  │ ◄─────► │   Axum Backend      │      │
-│  │  (TypeScript)    │  HTTP   │   (Rust)            │      │
-│  │  - React 18      │  REST   │   - Axum 0.6        │      │
-│  │  - TailwindCSS   │  API    │   - SQLx            │      │
-│  │  - React Query   │         │   - Tower           │      │
-│  └──────────────────┘         └─────────────────────┘      │
-│                                        │                    │
-│                                        ▼                    │
-│                              ┌─────────────────┐            │
-│                              │   PostgreSQL    │            │
-│                              │   Database      │            │
-│                              │   - JSONB       │            │
-│                              │   - Triggers    │            │
-│                              │   - Functions   │            │
-│                              └─────────────────┘            │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Technology Stack
-
-**Backend (Rust):**
-- **Axum 0.6** - Modern async web framework
-- **SQLx** - Compile-time checked SQL queries
-- **Tower** - Middleware and service composition
-- **Tokio** - Async runtime
-- **Serde** - Serialization/deserialization
-- **JWT** - JSON Web Token authentication
-
-**Frontend (TypeScript):**
-- **React 18** - UI library with hooks
-- **TypeScript** - Type-safe JavaScript
-- **TailwindCSS** - Utility-first CSS framework
-- **React Query** - Data fetching and caching
-- **Axios** - HTTP client
-
-**Database:**
-- **PostgreSQL 15+** - Primary data store
-- **JSONB** - Flexible data storage
-- **Full-Text Search** - Built-in search capabilities
-- **Triggers & Functions** - Business logic in database
-
-**Security:**
-- **JWT Authentication** - Stateless auth with httpOnly cookies
-- **RBAC** - Role-Based Access Control
-- **CORS** - Cross-Origin Resource Sharing
-- **Rate Limiting** - Token bucket algorithm
-- **Security Headers** - HSTS, CSP, X-Frame-Options
-- **Password Hashing** - Argon2id
-
----
-
-## 🔌 API Examples
-
-### Authentication
+## Development
 
 ```bash
-# Login
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@sentinelcore.local",
-    "password": "admin"
-  }'
-
-# Response
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "email": "admin@sentinelcore.local",
-    "full_name": "Admin User",
-    "role": "admin"
-  }
-}
-```
-
-### List Vulnerabilities
-
-```bash
-curl -X GET http://localhost:8080/api/vulnerabilities \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
-
-### Calculate Risk Score
-
-```bash
-curl -X POST http://localhost:8080/api/risk/vulnerabilities/{id}/calculate \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json"
-```
-
-### Create Comment with @mention
-
-```bash
-curl -X POST http://localhost:8080/api/comments \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "entity_type": "vulnerability",
-    "entity_id": "123e4567-e89b-12d3-a456-426614174000",
-    "comment_text": "This is critical! @john please investigate ASAP",
-    "is_internal": true
-  }'
-```
-
-**See complete API documentation:** [docs/API.md](docs/API.md)
-
----
-
-## 🔄 Updates & Maintenance
-
-### Update SentinelCore
-
-```bash
-cd /opt/sentinelcore
-sudo ./scripts/deployment/update_tools.sh
-```
-
-**The update script automatically:**
-1. ✅ Creates database backup
-2. ✅ Pulls latest changes from GitHub
-3. ✅ Applies new database migrations
-4. ✅ Recompiles backend (if Rust code changed)
-5. ✅ Rebuilds frontend (if React code changed)
-6. ✅ Restarts systemd service
-7. ✅ Verifies service health
-
-**Your data is safe:**
-- Database is separate from application code
-- Migrations are incremental (never delete data)
-- Automatic backup before each update
-
-### Manual Backup
-
-```bash
-# Backup database
-sudo -u postgres pg_dump sentinelcore_db > backup_$(date +%Y%m%d).sql
-
-# Backup configuration
-tar czf config_backup_$(date +%Y%m%d).tar.gz \
-  /opt/sentinelcore/.env \
-  /etc/nginx/sites-available/sentinelcore \
-  /etc/systemd/system/sentinelcore.service
-```
-
-### Restore Database
-
-```bash
-# Stop service
-sudo systemctl stop sentinelcore
-
-# Restore
-sudo -u postgres psql sentinelcore_db < backup_20251212.sql
-
-# Start service
-sudo systemctl start sentinelcore
-```
-
----
-
-## 🛠️ Troubleshooting
-
-### Service Won't Start
-
-```bash
-# Check service status
-sudo systemctl status sentinelcore
-
-# View detailed logs
-sudo journalctl -u sentinelcore -n 100 --no-pager
-
-# Check configuration
-cat /etc/systemd/system/sentinelcore.service
-
-# Restart service
-sudo systemctl restart sentinelcore
-```
-
-### Database Connection Errors
-
-```bash
-# Verify PostgreSQL is running
-sudo systemctl status postgresql
-
-# Test connection
-sudo -u postgres psql sentinelcore_db -c "SELECT 1;"
-
-# Check database URL in .env
-cat /opt/sentinelcore/vulnerability-manager/.env | grep DATABASE_URL
-```
-
-### Compilation Errors
-
-```bash
-cd /opt/sentinelcore/vulnerability-manager
-
-# Regenerate SQLx cache (requires PostgreSQL running)
-../scripts/deployment/regenerate-sqlx-cache.sh
-
-# Clean and rebuild
-cargo clean
-SQLX_OFFLINE=true cargo build --release
-```
-
-### Port 80 Already in Use
-
-```bash
-# Find process using port 80
-sudo lsof -i :80
-
-# Stop Apache (if installed by mistake)
-sudo systemctl stop apache2
-sudo systemctl disable apache2
-
-# Restart Nginx
-sudo systemctl restart nginx
-```
-
-### Frontend Build Errors
-
-```bash
-cd /opt/sentinelcore/vulnerability-manager-frontend
-
-# Clean node modules
-rm -rf node_modules package-lock.json
-
-# Reinstall dependencies
-npm install
-
-# Rebuild
-npm run build
-```
-
----
-
-## 📊 Feature Roadmap
-
-### ✅ Completed (100%)
-- ✅ Core vulnerability management
-- ✅ User authentication & RBAC
-- ✅ Team management
-- ✅ Scanner integration (7 scanners: Qualys, Nessus, Burp, OpenVAS, Nexpose, OWASP ZAP, Nmap)
-- ✅ Risk scoring system with advanced formula
-- ✅ SLA automation with breach detection
-- ✅ Comments system with @mentions and threading
-- ✅ Multi-channel notification routing (8 channels)
-- ✅ JIRA bi-directional integration
-- ✅ Dashboard & reporting
-- ✅ Network scanning and topology
-- ✅ Device management with bulk operations
-- ✅ Background workers (5 workers: SLA checker, JIRA sync, Notification digest, NVD enrichment, EPSS updater)
-- ✅ Exploit intelligence enrichment (NVD API, EPSS daily updates)
-- ✅ Quick Wins frontend integration (all components)
-- ✅ Advanced dashboards (Executive Dashboard, Technical Heatmap)
-- ✅ SOAR webhook integrations (Splunk SOAR, Cortex XSOAR, Sentinel)
-- ✅ Compliance reporting (PCI-DSS, ISO 27001, SOC2, HIPAA)
-- ✅ Workload tracking and team analytics
-
-### 🔮 Future Enhancements
-- 🔮 Container scanning integration (Trivy, Grype)
-- 🔮 API rate limiting per user (currently per IP)
-- 🔮 Multi-tenancy support
-- 🔮 Machine learning for false positive detection
-- 🔮 Custom vulnerability scanner plugin SDK
-
----
-
-## 👥 Roles & Permissions
-
-### Admin
-- ✅ Full system access
-- ✅ User and team management
-- ✅ System configuration
-- ✅ Security settings (CORS, rate limits, IP whitelist)
-- ✅ JIRA and notification configuration
-- ✅ Manual risk score calculation
-- ✅ Mark SLA breaches
-- ✅ Audit log access
-
-### Team Leader
-- ✅ Manage team members
-- ✅ Assign vulnerabilities to team
-- ✅ View team metrics and workload
-- ✅ Create reports
-- ✅ Comment on vulnerabilities
-- ✅ Update vulnerability status
-- ⛔ Cannot modify system settings
-
-### User
-- ✅ View assigned vulnerabilities
-- ✅ Update vulnerability status
-- ✅ Comment on vulnerabilities
-- ✅ View dashboard
-- ✅ Export data
-- ⛔ Cannot assign vulnerabilities
-- ⛔ Cannot manage teams
-
----
-
-## 🔧 Development
-
-### Setup Development Environment
-
-```bash
-# Clone repository
 git clone https://github.com/Dognet-Technologies/sentinelcore.git
 cd sentinelcore
 
-# Install PostgreSQL (macOS)
-brew install postgresql@15
-brew services start postgresql@15
-
-# Install PostgreSQL (Ubuntu/Debian)
-sudo apt install postgresql-15
-
-# Create database
-sudo -u postgres createuser -s sentinelcore
-sudo -u postgres createdb sentinelcore_db
-sudo -u postgres psql -c "ALTER USER sentinelcore WITH PASSWORD 'password';"
-
-# Run migrations
+# Backend
 cd vulnerability-manager
-sqlx database create
+cp .env.example .env       # then edit DATABASE_URL etc.
 sqlx migrate run
-
-# Backend development
-cargo build
 cargo run
 
-# Frontend development (separate terminal)
+# Frontend (new terminal)
 cd ../vulnerability-manager-frontend
 npm install
-npm start
+npm start                  # dev server on :3000, proxies /api to :8080
 ```
 
-### Run Tests
+**Quality gates:**
 
 ```bash
-# Backend tests
-cd vulnerability-manager
-cargo test
-
-# Frontend tests
-cd vulnerability-manager-frontend
-npm test
-
-# Integration tests
-cargo test --features integration
-```
-
-### Code Quality
-
-```bash
-# Format code
+# Rust
 cargo fmt
-npm run format
-
-# Lint
-cargo clippy
-npm run lint
-
-# Security audit
+cargo clippy --all-features -- -D warnings
+cargo test
 cargo audit
+
+# TypeScript
+cd vulnerability-manager-frontend
+npm run format
+npm test
 npm audit
 ```
 
----
+**sqlx offline cache**
 
-## 📄 License
+`sqlx::query!` and `sqlx::query_as!` macros are checked at compile time against the database. CI compiles with `SQLX_OFFLINE=true` against `.sqlx/`. After changing or adding a query:
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License
-
-Copyright (c) 2024-2025 Dognet Technologies
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+```bash
+cd vulnerability-manager
+cargo sqlx prepare    # connects to $DATABASE_URL, regenerates .sqlx/
+git add .sqlx
 ```
 
 ---
 
-## 🙏 Acknowledgments
+## Operations
 
-**SentinelCore** is built with amazing open-source technologies:
+### Logs
 
-- **[Axum](https://github.com/tokio-rs/axum)** - Ergonomic web framework by Tokio team
-- **[React](https://reactjs.org/)** - UI library by Meta
-- **[PostgreSQL](https://www.postgresql.org/)** - Advanced open-source database
-- **[Rust](https://www.rust-lang.org/)** - Systems programming language
-- **[TailwindCSS](https://tailwindcss.com/)** - Utility-first CSS framework
+File logging is on by default at `/var/log/sentinelsuite/sentinelcore/app.log`. The `log_retention` worker rotates by **size (500 MB) or age (7 days)** using copy-truncate so the open file descriptor stays valid, then gzips the previous file. Files older than `LOG_RETENTION_DAYS` are pruned.
 
-**Created with ❤️ by [Dognet Technologies](https://github.com/Dognet-Technologies)**
+Live tail:
 
----
+```bash
+sudo tail -f /var/log/sentinelsuite/sentinelcore/app.log
+# or via journal
+sudo journalctl -u sentinelcore -f
+```
 
-## 📞 Support & Community
+### Backups
 
-### Get Help
-- 📖 **Documentation:** [docs/](docs/)
-- 🐛 **Report Bugs:** [GitHub Issues](https://github.com/Dognet-Technologies/sentinelcore/issues)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/Dognet-Technologies/sentinelcore/discussions)
+```bash
+sudo -u postgres pg_dump sentinelcore_db | gzip > "backup_$(date +%Y%m%d).sql.gz"
+```
 
-### Contributing
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Restore:
 
-**Ways to contribute:**
-- 🐛 Report bugs and issues
-- 💡 Suggest new features
-- 📝 Improve documentation
-- 🔧 Submit pull requests
-- ⭐ Star the repository
+```bash
+gunzip -c backup_YYYYMMDD.sql.gz | sudo -u postgres psql sentinelcore_db
+```
 
----
+### Updates
 
-## 📈 Statistics
+```bash
+cd /opt/sentinelcore
+git pull origin main
 
-**Project Metrics:**
-- **Lines of Code:** ~50,000+ (Rust + TypeScript)
-- **Database Tables:** 30+ tables
-- **API Endpoints:** 80+ REST endpoints
-- **Migrations:** 16 SQL migrations
-- **Test Coverage:** 60%+ (target: 80%)
-- **Feature Completeness:** 75%
+cd vulnerability-manager
+sqlx migrate run
+SQLX_OFFLINE=true cargo build --release
 
-**Quick Wins Implementation:**
-- ✅ Risk Scoring: ~600 LOC (Rust modules)
-- ✅ SLA Automation: ~450 LOC (SQL)
-- ✅ Comments System: ~300 LOC (SQL) + API handlers
-- ✅ Notification Routing: ~400 LOC (SQL) + routing engine
-- ✅ JIRA Integration: ~350 LOC (SQL) + sync logic
+cd ../vulnerability-manager-frontend
+npm install
+npm run build
+
+sudo systemctl restart sentinelcore
+```
 
 ---
 
-**⭐ If you find SentinelCore useful, please star the repository!**
+## Security
 
-**Made with ❤️ by Dognet Technologies** | [GitHub](https://github.com/Dognet-Technologies) | [Website](https://dognet.tech)
+| Layer | What we do |
+|-------|-----------|
+| **Transport** | TLS terminated at Nginx + HSTS header (`max-age=31536000; includeSubDomains; preload`). |
+| **Auth** | JWT in `httpOnly` cookie + CSRF token on POST/PUT/DELETE/PATCH. |
+| **Passwords** | Argon2id. |
+| **2FA** | TOTP (RFC 6238). |
+| **CSP** | Strict default-src `'self'`; configurable per deployment. |
+| **Rate limiting** | Per-IP token bucket; per-user is on the roadmap. |
+| **SSRF / path injection** | All file paths canonicalized and verified to stay under their canonical base. Outbound HTTP targets validated by host. |
+| **Audit log** | Every state-changing action writes an audit entry tied to the user. |
+
+If you spot something, please **don't** open a public issue. Email `security@dognet.tech` instead.
+
+---
+
+## Roadmap
+
+**Shipped in 1.0.1**
+
+- Network Topology restyle on the SentinelCore Design System.
+- Configurable nmap discovery with live scan progress.
+- File logging + retention worker.
+- Single source of truth for device ↔ vulnerability linkage.
+- Inline pencil-per-card editing on the device detail page.
+- CSRF middleware self-heal across restarts.
+
+**In flight on `develop/v1.0.1`**
+
+- Phase C: skill-based auto-assignment with "add skill" alert in the assignment dialog.
+- Container scanning (Trivy / Grype) — importers already in tree, wiring up next.
+
+**Considered, not committed**
+
+- Per-user rate limiting.
+- Multi-tenancy.
+- Plugin SDK + first-class skill matching.
+- Out-of-the-box k8s/Helm deployment.
+
+---
+
+## Roles
+
+| Role | Can | Cannot |
+|------|-----|--------|
+| **admin** | Everything below + user/team management, system settings, CORS, rate limits, JIRA, notifications, audit log, manual SLA override. | — |
+| **team_leader** | Manage team members, assign vulns to team, create reports, comment, change status. | Modify system settings. |
+| **user** | View assigned vulns, change their status, comment, view dashboard, export. | Assign vulns, manage teams. |
+
+---
+
+## Contributing
+
+Pull requests and issues are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before sending a PR — it covers branch naming, commit format (`<type>: <subject>`), and the dev/release line policy.
+
+Two things that will save us all time:
+
+1. Branch off `develop/v1.0.1`, not `main`. `main` only takes curated merges.
+2. If you touch a sqlx query, commit the regenerated `.sqlx/` cache in the same PR.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+<div align="center">
+
+Built by **[Dognet Technologies](https://github.com/Dognet-Technologies)** · [dognet.tech](https://dognet.tech)
+
+If SentinelCore helps your team sleep at night, a GitHub star is the quietest way to say thanks.
+
+</div>
