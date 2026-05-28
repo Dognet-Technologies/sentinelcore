@@ -134,7 +134,7 @@ while true; do
         2)
             echo ""
             echo -e "${BLUE}📊 Esecuzione Migrations...${NC}"
-            ./run-migrations.sh
+            (cd "$SCRIPT_DIR/../vulnerability-manager" && DATABASE_URL="postgresql://vlnman:DogNET@localhost/vulnerability_manager" sqlx migrate run)
             ;;
         3)
             echo ""
@@ -168,15 +168,14 @@ while true; do
             echo ""
             ;;
         6)
-            less QUICKSTART.md
+            less "$SCRIPT_DIR/../README.md"
             ;;
         7)
             echo ""
             echo -e "${BLUE}🧹 Pulizia build...${NC}"
-            cd vulnerability-manager && cargo clean
-            cd ../vulnerability-manager-frontend && rm -rf build/ node_modules/.cache/
+            (cd "$SCRIPT_DIR/../vulnerability-manager" && cargo clean)
+            rm -rf "$SCRIPT_DIR/../vulnerability-manager-frontend/build/" "$SCRIPT_DIR/../vulnerability-manager-frontend/node_modules/.cache/"
             echo -e "${GREEN}✅ Pulizia completata${NC}"
-            cd ..
             ;;
         8)
             echo ""

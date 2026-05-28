@@ -22,7 +22,7 @@ echo "   • Node.js: ${NODE_VERSION}"
 echo "   • PostgreSQL: ${POSTGRES_VERSION}+"
 echo "   • React: 18.2.0"
 echo "   • Axum: 0.6"
-echo "   • SQLx: 0.7"
+echo "   • SQLx: 0.8"
 echo ""
 
 # ============================================

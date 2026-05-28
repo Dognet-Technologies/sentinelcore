@@ -3,7 +3,8 @@
 
 set -e
 
-cd "$(dirname "$0")/vulnerability-manager-frontend"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/../vulnerability-manager-frontend"
 
 echo "🚀 Avvio Sentinel Core Frontend..."
 echo ""

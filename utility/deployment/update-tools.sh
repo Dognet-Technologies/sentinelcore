@@ -34,7 +34,7 @@ chown $ACTUAL_USER:$ACTUAL_USER $BACKUP_DIR
 # Step 2: Backup database
 echo -e "${YELLOW}[2/8] Backup database PostgreSQL...${NC}"
 BACKUP_FILE="$BACKUP_DIR/sentinelcore_backup_$(date +%Y%m%d_%H%M%S).sql"
-sudo -u postgres pg_dump sentinelcore_db > $BACKUP_FILE
+sudo -u postgres pg_dump vulnerability_manager > $BACKUP_FILE
 echo -e "${GREEN}✓ Database backup salvato: $BACKUP_FILE${NC}"
 
 # Step 3: Stop service
@@ -66,8 +66,8 @@ fi
 
 # Step 6: Regenerate SQLx cache
 echo -e "${YELLOW}[6/8] Rigenerazione cache SQLx...${NC}"
-if [ -f "$INSTALL_DIR/scripts/deployment/regenerate-sqlx-cache.sh" ]; then
-    sudo -u $ACTUAL_USER bash $INSTALL_DIR/scripts/deployment/regenerate-sqlx-cache.sh
+if [ -f "$INSTALL_DIR/utility/deployment/regenerate-sqlx-cache.sh" ]; then
+    sudo -u $ACTUAL_USER bash $INSTALL_DIR/utility/deployment/regenerate-sqlx-cache.sh
     echo -e "${GREEN}✓ Cache SQLx rigenerata${NC}"
 else
     echo -e "${YELLOW}⚠ Script rigenerazione cache non trovato, salto questo step${NC}"
@@ -104,5 +104,5 @@ echo -e "Backup database: ${GREEN}$BACKUP_FILE${NC}"
 echo -e "Servizio: ${GREEN}$(systemctl is-active sentinelcore)${NC}"
 echo ""
 echo -e "${YELLOW}Nota: In caso di problemi, puoi ripristinare il database con:${NC}"
-echo -e "  sudo -u postgres psql sentinelcore_db < $BACKUP_FILE"
+echo -e "  sudo -u postgres psql vulnerability_manager < $BACKUP_FILE"
 echo ""

@@ -1,6 +1,10 @@
 -- populate-test-data.sql
 -- Script completo per popolare il database SentinelCore con dati di test
 -- Esegui con: psql -h localhost -U vlnman -d vulnerability_manager -f populate-test-data.sql
+--
+-- ATTENZIONE: i password hash in questo file sono placeholder fittizi.
+-- Gli utenti inseriti NON potranno fare login con le credenziali indicate.
+-- Per seed con hash validi usare: vulnerability-manager/migrations/999_seed_data.sql
 
 BEGIN;
 

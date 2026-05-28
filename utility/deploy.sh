@@ -16,7 +16,7 @@ if [ -z "$DATABASE_URL" ]; then
     exit 1
 fi
 
-PROJECT_ROOT=$(dirname "$(readlink -f "$0")")
+PROJECT_ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
 echo "📁 Project Root: $PROJECT_ROOT"
 echo ""
 
@@ -28,7 +28,7 @@ cd "$PROJECT_ROOT/vulnerability-manager"
 
 if ! command -v sqlx &> /dev/null; then
     echo "⚠️  sqlx CLI not found, installing..."
-    cargo install sqlx-cli --no-default-features --features postgres
+    cargo install sqlx-cli@0.8 --no-default-features --features postgres
 fi
 
 echo "Running database migrations..."

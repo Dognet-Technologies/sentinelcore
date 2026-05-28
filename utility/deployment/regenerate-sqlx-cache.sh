@@ -45,7 +45,7 @@ cd "$REPO_ROOT/vulnerability-manager"
 
 # Install sqlx-cli if needed
 echo "📊 Checking sqlx-cli..."
-if ! cargo install sqlx-cli --no-default-features --features postgres 2>/dev/null; then
+if ! cargo install sqlx-cli@0.8 --no-default-features --features postgres 2>/dev/null; then
     echo "⚠️  sqlx-cli already installed or installation failed, continuing..."
 fi
 

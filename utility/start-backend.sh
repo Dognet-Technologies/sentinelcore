@@ -3,9 +3,8 @@
 
 set -e
 
-cd "/home/simone/Repos/Progetti/sentinelcore/vulnerability-manager"
-#=======
-cd "/home/simone/Repos/Progetti/sentinelcore/vulnerability-manager"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/../vulnerability-manager"
 
 echo "🚀 Avvio Sentinel Core Backend..."
 echo ""
@@ -25,8 +24,7 @@ echo ""
 
 # Verifica connessione database
 echo "🔍 Verifica connessione database..."
-psql "$DATABASE_URL" -c "SELECT version();" > /dev/null 2>&1
-if [ $? -eq 0 ]; then
+if psql "$DATABASE_URL" -c "SELECT version();" > /dev/null 2>&1; then
     echo "✅ Database connesso"
 else
     echo "❌ Impossibile connettersi al database!"

@@ -1,15 +1,16 @@
 #!/bin/bash
 # Script per compilare senza PostgreSQL attivo
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/../../vulnerability-manager"
+
 echo "🔧 Compilazione in modalità offline (senza PostgreSQL)..."
 echo ""
 
 export SQLX_OFFLINE=true
 
 echo "📦 Building backend..."
-cargo build --release
-
-if [ $? -eq 0 ]; then
+if cargo build --release; then
     echo ""
     echo "✅ Compilazione completata con successo!"
     echo ""
