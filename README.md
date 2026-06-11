@@ -263,14 +263,14 @@ Discovery and rescan parameters (subnet, schedule, scan type, timing, port list,
 sentinelcore/
 ├── vulnerability-manager/              # Rust backend (Axum 0.6 + sqlx 0.8)
 │   ├── src/
-│   │   ├── api/                        # Route definitions (186+ endpoints)
+│   │   ├── api/                        # Route definitions (188 endpoints)
 │   │   ├── handlers/                   # Request handlers
 │   │   ├── network/                    # Discovery scanner + topology
 │   │   ├── scanners/                   # 10 third-party importers
-│   │   ├── workers/                    # 9 background tokio workers
-│   │   ├── notifications/              # Email/Slack/Telegram/Teams/...
+│   │   ├── workers/                    # 12 background tokio workers
+│   │   ├── notifications/              # Email / Slack / Telegram
 │   │   └── middleware/                 # CSRF, RBAC, rate limit
-│   ├── migrations/                     # 117 SQL migrations
+│   ├── migrations/                     # 76 SQL migrations
 │   ├── .sqlx/                          # Committed compile-time query cache
 │   └── plugins/                        # First-party plugin examples
 │
@@ -283,12 +283,20 @@ sentinelcore/
 │   │   └── hooks/
 │   └── public/
 │
-├── docs/
+├── docs/                               # Technical documentation (see below)
 │   └── NetworkTopology_restyle/        # Design system + UI kit for the topology page
 │
 ├── scripts/                            # Deployment + maintenance scripts
 └── packer/                             # VM image build (optional)
 ```
+
+---
+
+## Documentation
+
+Full technical documentation lives in [`docs/`](docs/):
+
+[Overview](docs/01-overview.md) · [Architecture](docs/02-architecture.md) · [Features](docs/03-features.md) · [API Reference](docs/04-api-reference.md) · [Roles & Permissions](docs/05-roles-and-permissions.md) · [Data Model](docs/06-data-model.md) · [Integrations](docs/07-integrations.md) · [Plugin System](docs/08-plugin-system.md) · [Background Workers](docs/09-background-workers.md) · [Technical Specs](docs/10-technical-specs.md)
 
 ---
 
