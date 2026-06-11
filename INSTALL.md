@@ -2,21 +2,37 @@
 
 Step-by-step installation of SentinelCore on a fresh **Debian 13 (trixie)** VM: dependencies, PostgreSQL, migrations, backend build, frontend build, nginx, systemd, and the privilege setup required by network discovery.
 
-Every step in this guide is derived from the current code on the `develop/v1.0.1-*` line — where older scripts in `scripts/` or `packer/` disagree with this document, **this document wins** (several of those scripts are stale).
+This guide was **validated by a full clean install on a Debian 13 VM** (PostgreSQL 17.10, Rust 1.96, Node 20). Every command here was executed end-to-end; the notes call out the few places where the obvious approach does not work. Where older scripts in `scripts/` or `packer/` disagree with this document, **this document wins** (several of those scripts are stale).
+
+## Filesystem convention — `/opt/sentinelsuite/`
+
+SentinelCore is one component of the **Sentinel Suite** (alongside FireDog and CyberSheppard). By convention all suite software installs under `/opt/sentinelsuite/<component>/`, so multiple components can coexist on the same host:
+
+```
+/opt/sentinelsuite/
+├── sentinelcore/     # this product
+├── firedog/          # (if installed)
+└── cybersheppard/    # (if installed)
+```
+
+Logs follow the same convention under `/var/log/sentinelsuite/<component>/`.
 
 ## Target layout
 
 | Item | Value |
 |---|---|
 | Service user | `sentinelcore` (system user, no login shell) |
-| Source checkout | `/opt/sentinelcore/src` |
-| Application dir (working dir) | `/opt/sentinelcore/app` |
-| Frontend static files | `/opt/sentinelcore/frontend` |
+| Install root | `/opt/sentinelsuite/sentinelcore` |
+| Source checkout | `/opt/sentinelsuite/sentinelcore/src` |
+| Application dir (working dir) | `/opt/sentinelsuite/sentinelcore/app` |
+| Frontend static files | `/opt/sentinelsuite/sentinelcore/frontend` |
 | Log directory | `/var/log/sentinelsuite/sentinelcore/` (backend default) |
 | Backend port | `8080` (HTTP, localhost — TLS terminates at nginx) |
 | Database | PostgreSQL 17 (Debian 13 default), db `vulnerability_manager`, user `vlnman` |
 
 > **TLS note:** the backend does **not** implement TLS itself (`main.rs` binds plain HTTP; the `enable_tls` config key only produces a warning). HTTPS must be terminated by nginx.
+
+> **Disk:** a full build needs real headroom. The Rust `target/` (~3 GB), Cargo registry, and the frontend `node_modules` (~500 MB) easily exceed a 10 GB disk built alongside a GNOME image. Provision **at least 15 GB** (20 GB comfortable), or free space first (see the cleanup notes in steps 6 and 9). The validation VM was 10 GB and required removing `target/`/`node_modules` after the builds to stay under quota.
 
 ---
 
@@ -48,20 +64,20 @@ source "$HOME/.cargo/env"
 ## 2. Service user and directories
 
 ```bash
-sudo useradd --system --home /opt/sentinelcore --shell /usr/sbin/nologin sentinelcore
+sudo useradd --system --home /opt/sentinelsuite/sentinelcore --shell /usr/sbin/nologin sentinelcore
 
-sudo mkdir -p /opt/sentinelcore/{src,app,frontend}
-sudo mkdir -p /opt/sentinelcore/app/{config,uploads,reports,plugins}
+sudo mkdir -p /opt/sentinelsuite/sentinelcore/{src,app,frontend}
+sudo mkdir -p /opt/sentinelsuite/sentinelcore/app/{config,uploads,reports,plugins}
 sudo mkdir -p /var/log/sentinelsuite/sentinelcore
-sudo chown -R sentinelcore:sentinelcore /opt/sentinelcore /var/log/sentinelsuite/sentinelcore
+sudo chown -R sentinelcore:sentinelcore /opt/sentinelsuite/sentinelcore /var/log/sentinelsuite/sentinelcore
 ```
 
-The application resolves `config/`, `uploads/`, `reports/` and `plugins/` **relative to its working directory** — that is why `/opt/sentinelcore/app` exists and the systemd unit sets `WorkingDirectory` to it. The log directory must exist and be writable by the service user, otherwise the backend falls back to journal-only logging (it logs a warning, it does not fail).
+The application resolves `config/`, `uploads/`, `reports/` and `plugins/` **relative to its working directory** — that is why `/opt/sentinelsuite/sentinelcore/app` exists and the systemd unit sets `WorkingDirectory` to it. The log directory must exist and be writable by the service user, otherwise the backend falls back to journal-only logging (it logs a warning, it does not fail).
 
 ## 3. Clone the repository
 
 ```bash
-cd /opt/sentinelcore/src
+cd /opt/sentinelsuite/sentinelcore/src
 sudo -u sentinelcore git clone https://github.com/Dognet-Technologies/sentinelcore.git .
 # Pick the branch/tag you are deploying:
 sudo -u sentinelcore git checkout main
@@ -95,7 +111,7 @@ EOF
 ```bash
 export DATABASE_URL="postgresql://vlnman:${DB_PASS}@localhost:5432/vulnerability_manager"
 
-cd /opt/sentinelcore/src/vulnerability-manager
+cd /opt/sentinelsuite/sentinelcore/src/vulnerability-manager
 for f in migrations/*.sql; do
     case "$(basename "$f")" in
         099_*|999_*) echo "SKIP seed: $f"; continue ;;
@@ -107,26 +123,34 @@ done
 
 ### Create the first admin user
 
-Public registration (`POST /api/auth/register`) always creates plain `user` accounts, so bootstrap the admin directly (columns verified against the current schema). The hash below is for the password `admin123` — log in and **change it immediately** (Profile → Change password):
+The admin bootstrap happens **after** the service is running (step 11), because the only reliable way to get a correct Argon2 hash is to let the backend hash the password for you.
+
+> **Do not** copy the password hash from `999_seed_data.sql` into a manual `INSERT`. That seed hash uses throwaway Argon2 parameters (`m=16`) and does **not** correspond to `admin123` — a manual insert with it produces an account that cannot log in (verified during the validation install). Use the register-then-promote flow below instead.
+
+The procedure (run it once the backend and nginx are up):
 
 ```bash
-psql "$DATABASE_URL" <<'EOF'
-INSERT INTO users (username, password_hash, email, role)
-VALUES ('admin',
-        '$argon2id$v=19$m=16,t=2,p=1$NzZJbmtsRzJpSnJZeVVVcg$YiDJHvIB/lbugIUOI+Nc6D3ZLok',
-        'admin@example.com',
-        'admin');
-EOF
+# 1. Obtain a CSRF token (issued as a cookie on any GET)
+curl -s -c /tmp/sc.jar http://localhost/api/health >/dev/null
+CSRF=$(awk '/XSRF-TOKEN/{print $7}' /tmp/sc.jar)
+
+# 2. Register the admin account (created with role 'user')
+curl -s -b /tmp/sc.jar -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"username":"admin","email":"admin@example.com","password":"<STRONG_PASSWORD>","skip_email_verification":true}' \
+  http://localhost/api/auth/register
+
+# 3. Promote it to admin (only DB step; the password is already correctly hashed)
+psql "$DATABASE_URL" -c "UPDATE users SET role='admin' WHERE username='admin';"
 ```
 
-(Login works with an unverified email — verification only changes the welcome message.)
+`skip_email_verification: true` lets the account log in immediately. (Login also works with an unverified email — verification only changes the welcome message — but skipping is cleaner for a service account.) Pick a password that satisfies the production policy: **≥ 12 chars, upper + lower + number + special**.
 
 ## 6. Build the backend
 
 The repo commits the SQLx offline query cache (`.sqlx/`), so the standard build is offline:
 
 ```bash
-cd /opt/sentinelcore/src/vulnerability-manager
+cd /opt/sentinelsuite/sentinelcore/src/vulnerability-manager
 SQLX_OFFLINE=true cargo build --release
 ```
 
@@ -142,12 +166,18 @@ Install the artifacts:
 
 ```bash
 sudo install -o sentinelcore -g sentinelcore -m 755 \
-    target/release/vulnerability-manager /opt/sentinelcore/app/vulnerability-manager
+    target/release/vulnerability-manager /opt/sentinelsuite/sentinelcore/app/vulnerability-manager
 
 # Bundled plugins (optional — only used if plugins.enabled: true)
-sudo cp -r plugins/* /opt/sentinelcore/app/plugins/
-sudo chown -R sentinelcore:sentinelcore /opt/sentinelcore/app/plugins
+sudo cp -r plugins/* /opt/sentinelsuite/sentinelcore/app/plugins/
+sudo chown -R sentinelcore:sentinelcore /opt/sentinelsuite/sentinelcore/app/plugins
+
+# Reclaim ~3 GB once the binary is installed (optional, for tight disks —
+# target/ is only needed for the next rebuild)
+# rm -rf target
 ```
+
+The release build took ~3 minutes on the validation VM (10 vCPU). With the committed `.sqlx/` cache the offline build worked on the first try — no `cargo sqlx prepare` was needed.
 
 ## 7. Backend configuration
 
@@ -158,7 +188,7 @@ Two pitfalls to be aware of:
 1. **No variable interpolation in YAML.** The sample `config/production.yaml` in the repo contains `"${DATABASE_URL}"` / `"${JWT_SECRET}"` placeholders — the config loader does **not** expand them; left as-is the boot fails secret validation. Write real values into the file and protect it with permissions.
 2. **`VULN_*` env overrides do not work for nested snake_case keys.** The loader splits env names on every `_`, so `VULN_DATABASE_URL` → `database.url` works, but e.g. `VULN_AUTH_SECRET_KEY` → `auth.secret.key` does **not** reach `auth.secret_key`. Treat the YAML file as the single source of truth.
 
-Create `/opt/sentinelcore/app/config/production.yaml`:
+Create `/opt/sentinelsuite/sentinelcore/app/config/production.yaml`:
 
 ```yaml
 server:
@@ -213,8 +243,8 @@ log:
 ```
 
 ```bash
-sudo chown sentinelcore:sentinelcore /opt/sentinelcore/app/config/production.yaml
-sudo chmod 600 /opt/sentinelcore/app/config/production.yaml
+sudo chown sentinelcore:sentinelcore /opt/sentinelsuite/sentinelcore/app/config/production.yaml
+sudo chmod 600 /opt/sentinelsuite/sentinelcore/app/config/production.yaml
 ```
 
 Boot-time validation (with `APP_ENV=production`): the JWT secret must be ≥ 32 chars and not the dev default, and the database password must not be the dev default — otherwise the service refuses to start.
@@ -253,15 +283,21 @@ In both cases the backend verifies the tools at startup and logs a warning (with
 ## 9. Build and deploy the frontend
 
 ```bash
-cd /opt/sentinelcore/src/vulnerability-manager-frontend
-npm ci
+cd /opt/sentinelsuite/sentinelcore/src/vulnerability-manager-frontend
+# --fetch-retries hardens against transient registry resets (npm ci hit an
+# ECONNRESET mid-download on the validation VM and aborted; retrying succeeded).
+npm ci --no-audit --no-fund --fetch-retries=5 --fetch-retry-maxtimeout=120000
 npm run build
 
-sudo cp -r build/* /opt/sentinelcore/frontend/
-sudo chown -R www-data:www-data /opt/sentinelcore/frontend
+sudo cp -r build/* /opt/sentinelsuite/sentinelcore/frontend/
+sudo chown -R www-data:www-data /opt/sentinelsuite/sentinelcore/frontend
+
+# Reclaim ~500 MB once the build artifacts are copied out (optional but
+# recommended on a tight disk — node_modules is only needed to rebuild)
+rm -rf node_modules
 ```
 
-The SPA calls the API with relative `/api/...` URLs, so no build-time API endpoint is needed — nginx routing does the job.
+The SPA calls the API with relative `/api/...` URLs, so no build-time API endpoint is needed — nginx routing does the job. The build is CRA/react-scripts and is memory-hungry; on a small VM (≤ 2 GB RAM) add swap before running it.
 
 ## 10. nginx
 
@@ -293,7 +329,7 @@ server {
 
     # SPA static files
     location / {
-        root /opt/sentinelcore/frontend;
+        root /opt/sentinelsuite/sentinelcore/frontend;
         try_files $uri /index.html;
         add_header Cache-Control "public, max-age=3600";
     }
@@ -322,8 +358,8 @@ Wants=network-online.target postgresql.service
 Type=simple
 User=sentinelcore
 Group=sentinelcore
-WorkingDirectory=/opt/sentinelcore/app
-ExecStart=/opt/sentinelcore/app/vulnerability-manager
+WorkingDirectory=/opt/sentinelsuite/sentinelcore/app
+ExecStart=/opt/sentinelsuite/sentinelcore/app/vulnerability-manager
 
 Environment=APP_ENV=production
 Environment=LOGGING_LEVEL=info
@@ -339,7 +375,7 @@ RestartSec=10
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/opt/sentinelcore/app /var/log/sentinelsuite/sentinelcore
+ReadWritePaths=/opt/sentinelsuite/sentinelcore/app /var/log/sentinelsuite/sentinelcore
 
 [Install]
 WantedBy=multi-user.target
@@ -376,11 +412,36 @@ curl -s http://sentinelcore.example.com/api/health
 #   🌐 Server listening on 0.0.0.0:8080
 ```
 
-Then open the site, log in as `admin` / `admin123`, and immediately:
+Now create the admin account using the **register-then-promote** procedure in step 5 (it requires the running service). Then verify the end-to-end auth + discovery flow:
 
-1. change the admin password (Profile → Security);
-2. set the discovery interface/targets (Settings → Network Discovery);
-3. create your real users and teams.
+```bash
+# CSRF token
+curl -s -c /tmp/sc.jar http://localhost/api/health >/dev/null
+CSRF=$(awk '/XSRF-TOKEN/{print $7}' /tmp/sc.jar)
+
+# Login (re-uses the cookie jar; stores the session cookie)
+curl -s -b /tmp/sc.jar -c /tmp/sc.jar -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"<STRONG_PASSWORD>"}' http://localhost/api/auth/login
+
+# Authenticated call should return the admin profile with "role":"admin"
+CSRF=$(awk '/XSRF-TOKEN/{print $7}' /tmp/sc.jar)
+curl -s -b /tmp/sc.jar -H "X-CSRF-Token: $CSRF" http://localhost/api/users/me
+
+# Live discovery — note: arp-scan needs a CIDR target (see warning below)
+curl -s -b /tmp/sc.jar -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"scan_name":"smoke","scan_type":"discovery","target_range":"192.168.1.0/24","include_port_scan":false,"include_os_detection":false}' \
+  http://localhost/api/network/scan
+```
+
+This exact sequence was run on the validation VM: login returned `role:admin`, and the discovery scan persisted real devices visible at `GET /api/network/topology`.
+
+> **Discovery target format:** use **CIDR** (`192.168.1.0/24`) for the target range. The underlying `arp-scan` does **not** understand nmap-style hyphen ranges (`192.168.1.1-20`) — it treats them as a single host and finds nothing. nmap-style ranges only work for the nmap-based scan paths.
+
+Then open the site in a browser, log in as `admin`, and:
+
+1. set the discovery interface/targets (Settings → Network Discovery);
+2. create your real users and teams;
+3. if you must keep the temporary install-time sudoers/NOPASSWD broadening, remove it now.
 
 ## 13. Optional hardening
 
@@ -406,3 +467,7 @@ sudo ufw --force enable
 | Backend build: SQLx "query metadata" errors | Stale `.sqlx/` cache → `cargo sqlx prepare` against the migrated DB (step 6) |
 | Login OK but session drops immediately on plain HTTP | `cookies.secure: true` over HTTP — browser refuses the cookie (step 10) |
 | 401/403 on every POST from the UI | CSRF token cookie not reaching the browser — check nginx proxies `/api/` with cookies intact and the site origin matches `security.cors.allowed_origins` |
+| `admin` account exists but login says "Invalid credentials" | A manual `INSERT` with the seed hash was used — that hash is not `admin123`. Delete the row and use register-then-promote (step 5) |
+| `npm ci` aborts with `ECONNRESET` / `network aborted` | Transient registry reset — re-run with `--fetch-retries=5` (step 9) |
+| Discovery reports devices but topology/DB stays empty | The target was a hyphen range; arp-scan silently scanned one host. Use CIDR (step 12 warning) |
+| Discovery "devices_found" looks 1–2 higher than real hosts | Cosmetic: arp-scan footer lines are counted before the IP parse drops them. Real hosts persist correctly; harmless |
