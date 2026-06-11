@@ -18,6 +18,7 @@ This documentation is generated from and verified against the source code on bra
 | [08 — Plugin System](08-plugin-system.md) | Plugin manager, bundled plugins, manifest format |
 | [09 — Background Workers](09-background-workers.md) | All 12 workers: schedule, purpose, configuration |
 | [10 — Technical Specifications](10-technical-specs.md) | Stack, configuration, security controls, logging, requirements |
+| [INSTALL](../INSTALL.md) | Full installation on a Debian 13 VM: dependencies, PostgreSQL, migrations, builds, nginx, systemd, scan privileges |
 
 ## Repository layout
 

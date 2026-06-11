@@ -298,6 +298,8 @@ Full technical documentation lives in [`docs/`](docs/):
 
 [Overview](docs/01-overview.md) · [Architecture](docs/02-architecture.md) · [Features](docs/03-features.md) · [API Reference](docs/04-api-reference.md) · [Roles & Permissions](docs/05-roles-and-permissions.md) · [Data Model](docs/06-data-model.md) · [Integrations](docs/07-integrations.md) · [Plugin System](docs/08-plugin-system.md) · [Background Workers](docs/09-background-workers.md) · [Technical Specs](docs/10-technical-specs.md)
 
+Deploying on a fresh Debian 13 VM? Follow [INSTALL.md](INSTALL.md).
+
 ---
 
 ## Development
