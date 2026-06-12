@@ -124,7 +124,7 @@ done
 
 ### Create the first admin user
 
-The admin bootstrap happens **after** the service is running (step 11), because the only reliable way to get a correct Argon2 hash is to let the backend hash the password for you.
+The admin bootstrap happens **after** the service is running (step 12), because the only reliable way to get a correct Argon2 hash is to let the backend hash the password for you.
 
 > **Do not** copy the password hash from `999_seed_data.sql` into a manual `INSERT`. That seed hash uses throwaway Argon2 parameters (`m=16`) and does **not** correspond to `admin123` — a manual insert with it produces an account that cannot log in (verified during the validation install). Use the register-then-promote flow below instead.
 
@@ -300,7 +300,49 @@ Trade-offs: capabilities apply to **every user** on the host (broader exposure t
 
 In both cases the backend verifies the tools at startup and logs a warning (without aborting) if discovery cannot work; failed privileged scans fall back to unprivileged ping scans where possible.
 
-## 9. Build and deploy the frontend
+## 9. External scanner integrations (optional)
+
+The built-in plugin `openvas_integration` lets SentinelCore talk to a Greenbone Vulnerability Management (GVM/OpenVAS) instance via the **Greenbone Management Protocol (GMP)**. The plugin is **opt-in**: it stays disabled until you activate it in `/plugins`, so this step is only required if you actually want to import scans from OpenVAS.
+
+The Rust backend does not embed a GMP client — instead, it shells out to `gvm-cli` (part of the `gvm-tools` package) over TLS or UNIX socket. So the host needs `gvm-tools` installed and visible in `PATH` for the `sentinelcore` service user.
+
+### Why pipx and not apt
+
+Debian 13 does **not** ship `python3-gvm` / `gvm-tools` packages — `apt-cache search gvm-tools` returns nothing. The recommended way to install the upstream Python tooling is **pipx with `--global`**, which puts the executables in `/usr/local/bin/` (already in `PATH` for systemd units, including services running as `sentinelcore`).
+
+```bash
+# 1. Install pipx (Debian 13 ships pipx 1.7+, which supports --global).
+sudo apt-get install -y pipx
+
+# 2. Install gvm-tools system-wide. Symlinks land in /usr/local/bin/.
+sudo pipx install --global gvm-tools
+
+# 3. Verify: should print the usage line.
+gvm-cli --help | head -3
+ls -l /usr/local/bin/gvm-cli /usr/local/bin/gvm-script /usr/local/bin/gvm-pyshell
+```
+
+Expected installed version: `gvm-tools 26.x` (the older 25.x `[Auth]` config-file section is deprecated and ignored — the plugin already passes credentials via `--gmp-username/--gmp-password` flags, so no extra wiring is needed).
+
+### Reaching a remote GVM (optional)
+
+If your Greenbone instance runs on a separate host (typical: Greenbone Community Edition is a Docker stack on a separate scanner VM), GMP is only reachable via the gvmd UNIX socket inside that stack by default. Two options:
+
+- **Bind the socket via socat + TLS on the scanner host.** Then point the plugin at `tcp://<scanner-host>:9390` over TLS. The plugin's "Configura" dialog at `/plugins` accepts host/port + GMP credentials.
+- **Run SentinelCore and gvmd on the same host** and configure the plugin with `socket_path = /var/run/gvmd/gvmd.sock` (or wherever your distribution mounts it).
+
+### Smoke test from the SentinelCore host
+
+```bash
+gvm-cli --gmp-username admin --gmp-password '<gmp-pass>' \
+    tls --hostname <scanner-host> --port 9390 \
+    --xml '<get_version/>'
+# Expected: <get_version_response status="200" ...><version>22.x</version></get_version_response>
+```
+
+If you do not run any external scanner integration, you can safely skip this section — the rest of the installation does not depend on `gvm-tools`.
+
+## 10. Build and deploy the frontend
 
 ```bash
 cd /opt/sentinelsuite/sentinelcore/src/vulnerability-manager-frontend
@@ -319,7 +361,7 @@ rm -rf node_modules
 
 The SPA calls the API with relative `/api/...` URLs, so no build-time API endpoint is needed — nginx routing does the job. The build is CRA/react-scripts and is memory-hungry; on a small VM (≤ 2 GB RAM) add swap before running it.
 
-## 10. nginx
+## 11. nginx
 
 `/etc/nginx/sites-available/sentinelcore`:
 
@@ -364,7 +406,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 For HTTPS, add certificates with certbot (`sudo apt-get install certbot python3-certbot-nginx && sudo certbot --nginx -d sentinelcore.example.com`). If you stay on plain HTTP (lab/test only), set `security.cookies.secure: false` and `security.csrf.secure_cookie: false` in `production.yaml`, otherwise the browser will drop the auth cookies.
 
-## 11. systemd service
+## 12. systemd service
 
 `/etc/systemd/system/sentinelcore.service`:
 
@@ -412,7 +454,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now sentinelcore
 ```
 
-## 12. Verification
+## 13. Verification
 
 ```bash
 # Service up?
@@ -463,7 +505,7 @@ Then open the site in a browser, log in as `admin`, and:
 2. create your real users and teams;
 3. if you must keep the temporary install-time sudoers/NOPASSWD broadening, remove it now.
 
-## 13. Optional hardening
+## 14. Optional hardening
 
 ```bash
 # Firewall: only SSH + HTTP(S) exposed; port 8080 stays loopback-only by config
@@ -485,9 +527,11 @@ sudo ufw --force enable
 | Discovery finds nothing, log shows `sudo: a password is required` | Sudoers file missing/wrong (step 8A), or `NoNewPrivileges=true` left in the unit |
 | Discovery works as root test but not as service | Using Option B without `SENTINELCORE_NO_SUDO=1`, or capabilities not set on the right binary paths |
 | Backend build: SQLx "query metadata" errors | Stale `.sqlx/` cache → `cargo sqlx prepare` against the migrated DB (step 6) |
-| Login OK but session drops immediately on plain HTTP | `cookies.secure: true` over HTTP — browser refuses the cookie (step 10) |
+| Login OK but session drops immediately on plain HTTP | `cookies.secure: true` over HTTP — browser refuses the cookie (step 11) |
 | 401/403 on every POST from the UI | CSRF token cookie not reaching the browser — check nginx proxies `/api/` with cookies intact and the site origin matches `security.cors.allowed_origins` |
 | `admin` account exists but login says "Invalid credentials" | A manual `INSERT` with the seed hash was used — that hash is not `admin123`. Delete the row and use register-then-promote (step 5) |
-| `npm ci` aborts with `ECONNRESET` / `network aborted` | Transient registry reset — re-run with `--fetch-retries=5` (step 9) |
+| `npm ci` aborts with `ECONNRESET` / `network aborted` | Transient registry reset — re-run with `--fetch-retries=5` (step 10) |
 | Discovery reports devices but topology/DB stays empty | The target was a hyphen range; arp-scan silently scanned one host. Use CIDR (step 12 warning) |
 | Discovery "devices_found" looks 1–2 higher than real hosts | Cosmetic: arp-scan footer lines are counted before the IP parse drops them. Real hosts persist correctly; harmless |
+| OpenVAS plugin: "Connessione OK · GMP X.x" never returns / "gvm-cli not found" | `gvm-tools` not installed or not in the systemd `PATH`. Install with `sudo pipx install --global gvm-tools` (step 9), then restart `sentinelcore`. The default systemd `PATH` already includes `/usr/local/bin` so no drop-in unit is needed when installed `--global` |
+| OpenVAS plugin: `gvm-cli exit 1: …deprecated 'Auth' section… EOF` | You have `gvm-tools 25.x` whose `[Auth]` config-file section is silently ignored. `pipx install --global gvm-tools` pulls `26.x`, which the plugin uses correctly (credentials via `--gmp-username/--gmp-password` flags) |
