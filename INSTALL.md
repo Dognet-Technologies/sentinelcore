@@ -32,7 +32,7 @@ Logs follow the same convention under `/var/log/sentinelsuite/<component>/`.
 
 > **TLS note:** the backend does **not** implement TLS itself (`main.rs` binds plain HTTP; the `enable_tls` config key only produces a warning). HTTPS must be terminated by nginx.
 
-> **Disk:** a full build needs real headroom. The Rust `target/` (~3 GB), Cargo registry, and the frontend `node_modules` (~500 MB) easily exceed a 10 GB disk built alongside a GNOME image. Provision **at least 15 GB** (20 GB comfortable), or free space first (see the cleanup notes in steps 6 and 9). The validation VM was 10 GB and required removing `target/`/`node_modules` after the builds to stay under quota.
+> **Disk:** a full build needs real headroom. The Rust `target/` (~1.5 GB after a clean release build, ~3 GB with incremental + debug artifacts), Cargo registry (~400 MB), `node_modules` (~700 MB), and the binary copy in `app/` (~26 MB) easily exceed a 10 GB disk built alongside a GNOME image. **At least 20 GB is recommended**; a 10 GB VM hits 98% usage during the second `cargo build` and a single re-build wedges it (verified — `error: No space left on device`). On a tight disk you must `rm -rf target/ node_modules/` between full builds. For an iterative dev/test box plan **20+ GB**.
 
 ---
 
@@ -47,6 +47,7 @@ sudo apt-get install -y \
     postgresql postgresql-contrib \
     nginx \
     nmap arp-scan \
+    rsync \
     sudo ca-certificates gnupg
 
 # Node.js 20 LTS (for the frontend build)
@@ -227,6 +228,25 @@ security:
   cookies:
     secure: true             # set false only if serving plain HTTP
     same_site: "Strict"
+
+# ────────────────────────────────────────────────────────────────────
+# IMPORTANT — `security.cors.allowed_origins`
+#
+# Must list the EXACT site origin the browser uses (scheme + host
+# + optional non-default port). Every request whose `Origin` header
+# does not match the list is blocked by the backend with a CORS error,
+# and the UI shows "Network error / Failed to fetch" on every action.
+#
+# Common pitfalls:
+#   - DHCP-assigned IP changes after a reboot → the origin no longer
+#     matches what's in this list. Either pin the IP (static or DHCP
+#     reservation), or update this list after each change and reload
+#     the service:
+#         sudo systemctl restart sentinelcore
+#   - HTTP vs HTTPS mismatch: if nginx serves HTTP only (lab/internal),
+#     the origin is `http://…`, not `https://`. Adjust accordingly.
+#   - Port: include the port only if it's non-default (e.g. `:8443`).
+# ────────────────────────────────────────────────────────────────────
 
 plugins:
   directory: "./plugins"
