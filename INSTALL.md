@@ -17,11 +17,23 @@ SentinelCore is one component of the **Sentinel Suite** (alongside FireDog and C
 
 Logs follow the same convention under `/var/log/sentinelsuite/<component>/`.
 
+## Two-user model
+
+SentinelCore (and the rest of the Sentinel Suite) is installed under **two distinct Linux accounts** and the rest of this document keeps them carefully separate. Mixing them up is the single most common cause of "step works as root, breaks as the daemon" failures:
+
+| Account | Role | Shell / login | Sudo |
+|---|---|---|---|
+| `microcyber` | **Operator** — SSH login, builds, manages services across the whole suite | normal interactive shell | full `sudo` (password-prompted) |
+| `sentinelcore` | **Service** — owns the runtime tree, runs the systemd unit | `/usr/sbin/nologin`, no home outside `/opt/...` | only `NOPASSWD: /usr/bin/nmap, /usr/sbin/arp-scan` (step 8) |
+
+Unless a step explicitly says otherwise, **every command in this guide is run as the operator user (`microcyber` by convention — see Prerequisites)**, with `sudo` for the privileged ones. The few places that need the service user are called out with `sudo -u sentinelcore …` or `install -o sentinelcore …` inline.
+
 ## Target layout
 
 | Item | Value |
 |---|---|
-| Service user | `sentinelcore` (system user, no login shell) |
+| Operator user | `microcyber` (SSH login, sudo, builds — see Prerequisites) |
+| Service user | `sentinelcore` (system user, no login shell — see section 2) |
 | Install root | `/opt/sentinelsuite/sentinelcore` |
 | Source checkout | `/opt/sentinelsuite/sentinelcore/src` |
 | Application dir (working dir) | `/opt/sentinelsuite/sentinelcore/app` |
@@ -33,6 +45,14 @@ Logs follow the same convention under `/var/log/sentinelsuite/<component>/`.
 > **TLS note:** the backend does **not** implement TLS itself (`main.rs` binds plain HTTP; the `enable_tls` config key only produces a warning). HTTPS must be terminated by nginx.
 
 > **Disk:** a full build needs real headroom. The Rust `target/` (~1.5 GB after a clean release build, ~3 GB with incremental + debug artifacts), Cargo registry (~400 MB), `node_modules` (~700 MB), and the binary copy in `app/` (~26 MB) easily exceed a 10 GB disk built alongside a GNOME image. **At least 20 GB is recommended**; a 10 GB VM hits 98% usage during the second `cargo build` and a single re-build wedges it (verified — `error: No space left on device`). On a tight disk you must `rm -rf target/ node_modules/` between full builds. For an iterative dev/test box plan **20+ GB**.
+
+---
+
+## Prerequisites
+
+You need a normal (non-root) Linux account with **interactive sudo** to run this guide. Across the Sentinel Suite we standardize on **`microcyber`** as the operator name — preconfigured Suite VMs ship with it and the **default password `Admin2026!!`** (change it at first login via `passwd`, the install does not require it after that). On a hand-built host, any sudo-capable user works; if you keep the naming convention the rest of the suite documentation will line up. Do **not** give the operator a blanket `NOPASSWD: ALL` — the only `NOPASSWD` rule in this guide is the minimal one in step 8, scoped to the `sentinelcore` *service* user and to `nmap` + `arp-scan` only.
+
+All subsequent commands are run as that operator user, with `sudo` for the privileged ones.
 
 ---
 
@@ -60,7 +80,14 @@ Rust (latest stable, via rustup — do this as your build user, not root):
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
 source "$HOME/.cargo/env"
+rustc --version   # should print 1.94+ — the SQLx 0.9 toolchain floor
 ```
+
+> **If rustup was already installed for another project**, the active default may still point at an older toolchain (e.g. 1.88). Force-update and re-pin stable as the default before continuing — otherwise the `cargo sqlx prepare` fallback in step 6 errors out with *"requires rustc 1.94.0 or newer"*:
+> ```bash
+> rustup update stable
+> rustup default stable
+> ```
 
 ## 2. Service user and directories
 
@@ -77,14 +104,17 @@ The application resolves `config/`, `uploads/`, `reports/` and `plugins/` **rela
 
 ## 3. Clone the repository
 
+Clone as **`microcyber`** — the operator account from step 0, which owns the Cargo install and will run the build. Step 2 created `src/` owned by `sentinelcore`, so first hand it over; Cargo needs write access to `src/vulnerability-manager/target/` and `sentinelcore` has no shell and no Cargo install, which would make every subsequent build command painful.
+
 ```bash
+sudo chown -R microcyber:microcyber /opt/sentinelsuite/sentinelcore/src
 cd /opt/sentinelsuite/sentinelcore/src
-sudo -u sentinelcore git clone https://github.com/Dognet-Technologies/sentinelcore.git .
+git clone https://github.com/Dognet-Technologies/sentinelcore.git .
 # Pick the branch/tag you are deploying:
-sudo -u sentinelcore git checkout main
+git checkout main
 ```
 
-The repository contains both the backend (`vulnerability-manager/`) and the frontend (`vulnerability-manager-frontend/`).
+The repository contains both the backend (`vulnerability-manager/`) and the frontend (`vulnerability-manager-frontend/`). Source ownership stays with `microcyber` for the lifetime of the install — only the built artifacts under `app/` and `frontend/` are handed over to `sentinelcore`/`www-data` respectively (steps 6 and 10).
 
 ## 4. PostgreSQL
 
@@ -155,13 +185,15 @@ cd /opt/sentinelsuite/sentinelcore/src/vulnerability-manager
 SQLX_OFFLINE=true cargo build --release
 ```
 
-If the build fails with "query metadata not found / mismatched" errors, the committed cache is stale for your branch — regenerate it against the live, fully migrated database and retry:
+If the build fails with `SQLX_OFFLINE=true but there is no cached data for this query` (or similar metadata mismatches), the committed cache is stale for your branch — regenerate it against the live, fully migrated database and retry:
 
 ```bash
 cargo install sqlx-cli --no-default-features --features postgres
 DATABASE_URL="$DATABASE_URL" cargo sqlx prepare
 SQLX_OFFLINE=true cargo build --release
 ```
+
+> Verified on `develop/v1.0.1` at the time of the v1.0.1 beta cut: the committed `.sqlx/` lagged a few migrations, so a fresh install **does** require the `cargo sqlx prepare` step. Plan on it taking an extra ~1 min of build time on top of the release build. Treat the missing-query error as a known recovery path, not a red flag.
 
 Install the artifacts:
 
@@ -271,6 +303,8 @@ Boot-time validation (with `APP_ENV=production`): the JWT secret must be ≥ 32 
 
 ## 8. Network discovery privileges (nmap / arp-scan)
 
+> **Different user from step 0.** The sudoers drop-in below is for the `sentinelcore` *service* user (created in step 2), not for the `microcyber` operator user. The two are intentionally separate: `microcyber` uses regular password-prompted `sudo` only during install, while the daemon needs a tiny, NOPASSWD-scoped rule for exactly two binaries so that automated scans don't hang waiting for a TTY.
+
 Discovery shells out to `nmap` and `arp-scan`. When the service does not run as root, every invocation is prefixed with **`sudo -n`** (non-interactive). Two supported setups — pick **one**:
 
 ### Option A — sudoers (recommended, matches the code's default path)
@@ -365,10 +399,12 @@ The SPA calls the API with relative `/api/...` URLs, so no build-time API endpoi
 
 `/etc/nginx/sites-available/sentinelcore`:
 
+For an IP-only deployment with no DNS, replace the `server_name` value below with `_` (catch-all) — nginx then serves the SPA on every Host header pointing at the box, which is what a lab or air-gapped install actually wants.
+
 ```nginx
 server {
-    listen 80;
-    server_name sentinelcore.example.com;
+    listen 80 default_server;
+    server_name sentinelcore.example.com;   # or `_` for an IP-only install
 
     # Scan uploads can be large
     client_max_body_size 100M;
@@ -527,6 +563,7 @@ sudo ufw --force enable
 | Discovery finds nothing, log shows `sudo: a password is required` | Sudoers file missing/wrong (step 8A), or `NoNewPrivileges=true` left in the unit |
 | Discovery works as root test but not as service | Using Option B without `SENTINELCORE_NO_SUDO=1`, or capabilities not set on the right binary paths |
 | Backend build: SQLx "query metadata" errors | Stale `.sqlx/` cache → `cargo sqlx prepare` against the migrated DB (step 6) |
+| `cargo install sqlx-cli` fails with `requires rustc 1.94.0 or newer` | The active rustup default toolchain is older than `stable` — usually a pre-existing rustup install left the default pinned to an earlier version. Run `rustup default stable` (step 1 note) and retry |
 | Login OK but session drops immediately on plain HTTP | `cookies.secure: true` over HTTP — browser refuses the cookie (step 11) |
 | 401/403 on every POST from the UI | CSRF token cookie not reaching the browser — check nginx proxies `/api/` with cookies intact and the site origin matches `security.cors.allowed_origins` |
 | `admin` account exists but login says "Invalid credentials" | A manual `INSERT` with the seed hash was used — that hash is not `admin123`. Delete the row and use register-then-promote (step 5) |
