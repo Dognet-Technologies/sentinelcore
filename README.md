@@ -24,7 +24,7 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 The 1.0.1 release line ships a full **Network Topology restyle** plus a chain of operational improvements pulled from real deployment friction:
 
-- **Hex/orb device nodes** with per-device-type colour and silhouette icons, link endpoint dots, subnet chips, and HUD overlays — built off the SentinelCore Design System in [`docs/NetworkTopology_restyle/`](docs/NetworkTopology_restyle/).
+- **Hex/orb device nodes** with per-device-type colour and silhouette icons, link endpoint dots, subnet chips, and HUD overlays.
 - **Slide-in device preview panel** on icon click — the Overview content surfaces without a full navigation, with an "Apri dettaglio completo" button to go deeper.
 - **Inline pencil-per-card editing** on the System Configuration tab (location, owner, criticality, model, OS, …) — no separate management page.
 - **Live scan progress banner** with elapsed time, devices found, and current target — replacing the "did it start? did it die?" guesswork.
@@ -263,14 +263,14 @@ Discovery and rescan parameters (subnet, schedule, scan type, timing, port list,
 sentinelcore/
 ├── vulnerability-manager/              # Rust backend (Axum 0.6 + sqlx 0.8)
 │   ├── src/
-│   │   ├── api/                        # Route definitions (186+ endpoints)
+│   │   ├── api/                        # Route definitions (188 endpoints)
 │   │   ├── handlers/                   # Request handlers
 │   │   ├── network/                    # Discovery scanner + topology
 │   │   ├── scanners/                   # 10 third-party importers
-│   │   ├── workers/                    # 9 background tokio workers
-│   │   ├── notifications/              # Email/Slack/Telegram/Teams/...
+│   │   ├── workers/                    # 12 background tokio workers
+│   │   ├── notifications/              # Email / Slack / Telegram
 │   │   └── middleware/                 # CSRF, RBAC, rate limit
-│   ├── migrations/                     # 117 SQL migrations
+│   ├── migrations/                     # 76 SQL migrations
 │   ├── .sqlx/                          # Committed compile-time query cache
 │   └── plugins/                        # First-party plugin examples
 │
@@ -283,233 +283,21 @@ sentinelcore/
 │   │   └── hooks/
 │   └── public/
 │
-├── docs/
-│   └── NetworkTopology_restyle/        # Design system + UI kit for the topology page
-│
-├── scripts/                            # Deployment + maintenance scripts
-└── packer/                             # VM image build (optional)
+└── docs/                               # Technical documentation (see below)
 ```
 
 ---
 
+## Documentation
 
-## 🚀 Binary Deployment
+Full technical documentation lives in [`docs/`](docs/):
 
-Pre-compiled binaries are distributed in the release package. No Rust toolchain is needed on the server.
+[Overview](docs/01-overview.md) · [Architecture](docs/02-architecture.md) · [Features](docs/03-features.md) · [API Reference](docs/04-api-reference.md) · [Roles & Permissions](docs/05-roles-and-permissions.md) · [Data Model](docs/06-data-model.md) · [Integrations](docs/07-integrations.md) · [Plugin System](docs/08-plugin-system.md) · [Background Workers](docs/09-background-workers.md) · [Technical Specs](docs/10-technical-specs.md)
 
-**Release package contents:**
-```
-vulnerability-manager          # backend binary (x86_64 Linux)
-migrations/                    # SQL migration files (56 files)
-vulnerability-manager-frontend/build/   # React production build
-```
-
-### System Requirements
-
-- Debian 12/13 or Ubuntu 22.04+ (x86_64)
-- 2+ CPU cores, 4 GB+ RAM
-- PostgreSQL 15+, Nginx
-- `nmap`, `arp-scan` packages
-
-### 1. Install Dependencies
-
-```bash
-sudo apt update
-sudo apt install -y postgresql nginx nmap arp-scan libssl3
-```
+Deploying on a fresh Debian 13 VM? Follow [INSTALL.md](INSTALL.md).
 
 ---
 
-### 2. PostgreSQL Setup
-
-```bash
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-
-sudo -u postgres psql -c "CREATE USER vlnman WITH PASSWORD 'your-strong-password';"
-sudo -u postgres psql -c "CREATE DATABASE vulnerability_manager OWNER vlnman;"
-```
-
-> **Important:** The backend connects via TCP (`127.0.0.1:5432`), not via Unix socket.
-> Always use `127.0.0.1` (not `localhost`) in the connection URL — using `localhost`
-> can cause libpq to fall back to the Unix socket, triggering peer authentication
-> failure even though the pg_hba.conf allows scram-sha-256 for TCP connections.
-
----
-
-### 3. Apply Database Migrations
-
-Migrations are **not** applied automatically at startup. Run them manually before
-the first start, and again after any update that adds new migration files.
-
-```bash
-# Copy migrations to the server first, then:
-for f in $(ls /opt/sentinelcore/migrations/*.sql | sort); do
-  PGPASSWORD=your-password psql -h 127.0.0.1 -U vlnman -d vulnerability_manager -f "$f"
-done
-```
-
-> The migrations directory contains 56 SQL files numbered sequentially.
-> They must be applied in alphabetical/numerical order.
-
----
-
-### 4. Install Application Files
-
-```bash
-sudo mkdir -p /opt/sentinelcore/{migrations,uploads}
-sudo chown -R $USER:$USER /opt/sentinelcore
-
-# Backend binary
-cp vulnerability-manager /opt/sentinelcore/
-chmod +x /opt/sentinelcore/vulnerability-manager
-
-# Migrations (keep for future upgrades)
-cp -r migrations/ /opt/sentinelcore/
-```
-
----
-
-### 5. Environment Configuration
-
-Create `/opt/sentinelcore/.env`:
-
-```bash
-# Database — use 127.0.0.1, not localhost (see section 2)
-VULN_DATABASE_URL=postgresql://vlnman:your-password@127.0.0.1:5432/vulnerability_manager
-
-# JWT secret — generate a strong random key (minimum 32 characters)
-JWT_SECRET_KEY=replace-with-a-long-random-secret-key
-
-# Logging
-RUST_LOG=info,vulnerability_manager=info
-```
-
-> **Config system note:** The default configuration is embedded in the binary at
-> compile time via `include_str!`. Runtime overrides require the `VULN_` prefix.
-> The separator is `_`, so `VULN_DATABASE_URL` maps to `database.url`,
-> `VULN_SERVER_PORT` maps to `server.port`, and so on.
->
-> Alternatively, place a `config/development.yaml` (or `config/production.yaml`
-> with `APP_ENV=production`) in the working directory `/opt/sentinelcore/`.
-> This file is loaded at runtime and merged on top of compiled-in defaults.
-
----
-
-### 6. Systemd Service
-
-Create `/etc/systemd/system/sentinelcore.service`:
-
-```ini
-[Unit]
-Description=SentinelCore Vulnerability Manager Backend
-After=network.target postgresql.service
-Requires=postgresql.service
-
-[Service]
-Type=simple
-User=your-user
-WorkingDirectory=/opt/sentinelcore
-EnvironmentFile=/opt/sentinelcore/.env
-ExecStart=/opt/sentinelcore/vulnerability-manager
-Restart=on-failure
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=sentinelcore
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable sentinelcore
-sudo systemctl start sentinelcore
-
-# Verify
-sudo systemctl status sentinelcore
-sudo journalctl -u sentinelcore -f
-```
-
----
-
-### 7. Nginx Configuration
-
-Deploy the React build and install the site config:
-
-```bash
-# Copy frontend static files
-sudo cp -r build/* /usr/share/nginx/html/
-```
-
-Create `/etc/nginx/sites-available/sentinelcore`:
-
-```nginx
-server {
-    listen 80;
-    listen [::]:80;
-    server_name _;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    add_header X-Frame-Options "DENY" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_types text/plain text/css text/xml text/javascript application/json application/javascript;
-
-    # Cache static assets (filenames are content-hashed by the build tool)
-    location ~* \.(js|css|woff2?|ttf|eot|svg|ico|png|jpg)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Proxy API requests to the backend
-    location /api/ {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Proxy file uploads served by the backend
-    location /uploads/ {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    # SPA fallback — all unmatched routes return index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location ~ /\. {
-        deny all;
-    }
-}
-```
-
-```bash
-sudo ln -sf /etc/nginx/sites-available/sentinelcore /etc/nginx/sites-enabled/sentinelcore
-sudo rm -f /etc/nginx/sites-enabled/default   # remove default nginx page
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-> **Why this nginx layout matters:** The frontend must be served as static files by
-> nginx, with only `/api/` and `/uploads/` proxied to the backend. Proxying
-> everything through the backend would bypass the React router (SPA fallback) and
-> break client-side navigation.
-
----
 ## Development
 
 ```bash
