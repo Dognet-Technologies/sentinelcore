@@ -126,27 +126,34 @@ systemctl enable --now sentinelcore >/dev/null 2>&1
 
 # ── 8. health + admin ───────────────────────────────────────────────────────
 log "8/8 Verifica e creazione admin"
-for i in $(seq 1 20); do
+# Da qui i fallimenti NON devono abortire l'install (gia' a posto a monte).
+set +e
+for i in $(seq 1 30); do
   [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health 2>/dev/null)" = "200" ] && break
   sleep 1
 done
-HEALTH="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health 2>/dev/null || echo '???')"
+HEALTH="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health 2>/dev/null)"
 
 ADMIN_USER="admin"
-ADMIN_PASS="$(openssl rand -base64 15 | tr -d '/+=' | cut -c1-16)Aa1!"
+# Password conforme alla policy (>=12, maiusc+minusc+numero+speciale).
+ADMIN_PASS="$(openssl rand -base64 12 | tr -dc 'A-Za-z0-9' | cut -c1-14)Aa1!"
 ADMIN_OK=0
 if [ "$HEALTH" = "200" ]; then
-  CJ="$(mktemp)"
-  curl -s -c "$CJ" http://127.0.0.1:8080/api/health >/dev/null 2>&1 || true
-  CSRF="$(curl -s -c "$CJ" -b "$CJ" http://127.0.0.1:8080/api/auth/csrf 2>/dev/null | grep -oE '"[a-f0-9-]{20,}"' | head -1 | tr -d '"')"
-  REG="$(curl -s -b "$CJ" -c "$CJ" -H 'Content-Type: application/json' ${CSRF:+-H "X-CSRF-Token: $CSRF"} \
-        -X POST http://127.0.0.1:8080/api/auth/register \
-        -d "{\"username\":\"$ADMIN_USER\",\"email\":\"admin@local\",\"password\":\"$ADMIN_PASS\"}" 2>/dev/null || true)"
-  # promozione ad admin (unico passo DB; la password e' gia' hashata correttamente)
+  # Flusso register-then-promote (vedi INSTALL.md): CSRF = cookie XSRF-TOKEN su
+  # una GET qualsiasi, poi register con skip_email_verification, poi promote.
+  JAR="$(mktemp)"
+  curl -s -c "$JAR" http://127.0.0.1:8080/api/health >/dev/null 2>&1
+  CSRF="$(awk '/XSRF-TOKEN/{print $7}' "$JAR" 2>/dev/null)"
+  curl -s -b "$JAR" -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+    -X POST http://127.0.0.1:8080/api/auth/register \
+    -d "{\"username\":\"$ADMIN_USER\",\"email\":\"admin@local\",\"password\":\"$ADMIN_PASS\",\"skip_email_verification\":true}" \
+    >/dev/null 2>&1
   PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -q \
-    -c "UPDATE users SET role='admin' WHERE username='$ADMIN_USER';" 2>/dev/null \
-    && ADMIN_OK=1 || true
-  rm -f "$CJ"
+    -c "UPDATE users SET role='admin' WHERE username='$ADMIN_USER';" >/dev/null 2>&1
+  ROLE="$(PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -tAc \
+        "SELECT role FROM users WHERE username='$ADMIN_USER'" 2>/dev/null)"
+  [ "$ROLE" = "admin" ] && ADMIN_OK=1
+  rm -f "$JAR"
 fi
 
 # ── summary ─────────────────────────────────────────────────────────────────
