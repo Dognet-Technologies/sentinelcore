@@ -24,7 +24,7 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 The 1.0.1 release line ships a full **Network Topology restyle** plus a chain of operational improvements pulled from real deployment friction:
 
-- **Hex/orb device nodes** with per-device-type colour and silhouette icons, link endpoint dots, subnet chips, and HUD overlays — built off the SentinelCore Design System in [`docs/NetworkTopology_restyle/`](docs/NetworkTopology_restyle/).
+- **Hex/orb device nodes** with per-device-type colour and silhouette icons, link endpoint dots, subnet chips, and HUD overlays.
 - **Slide-in device preview panel** on icon click — the Overview content surfaces without a full navigation, with an "Apri dettaglio completo" button to go deeper.
 - **Inline pencil-per-card editing** on the System Configuration tab (location, owner, criticality, model, OS, …) — no separate management page.
 - **Live scan progress banner** with elapsed time, devices found, and current target — replacing the "did it start? did it die?" guesswork.
@@ -283,11 +283,7 @@ sentinelcore/
 │   │   └── hooks/
 │   └── public/
 │
-├── docs/                               # Technical documentation (see below)
-│   └── NetworkTopology_restyle/        # Design system + UI kit for the topology page
-│
-├── scripts/                            # Deployment + maintenance scripts
-└── packer/                             # VM image build (optional)
+└── docs/                               # Technical documentation (see below)
 ```
 
 ---
