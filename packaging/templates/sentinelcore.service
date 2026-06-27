@@ -1,0 +1,27 @@
+[Unit]
+Description=SentinelCore Vulnerability Management
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=sentinelcore
+Group=sentinelcore
+WorkingDirectory=/opt/sentinelsuite/sentinelcore/app
+ExecStart=/opt/sentinelsuite/sentinelcore/app/vulnerability-manager
+
+Environment=APP_ENV=production
+Environment=LOGGING_LEVEL=info
+Environment=LOGGING_DESTINATION=/var/log/sentinelsuite/sentinelcore/app.log
+
+Restart=on-failure
+RestartSec=10
+
+# Hardening
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/sentinelsuite/sentinelcore/app /var/log/sentinelsuite/sentinelcore
+
+[Install]
+WantedBy=multi-user.target
