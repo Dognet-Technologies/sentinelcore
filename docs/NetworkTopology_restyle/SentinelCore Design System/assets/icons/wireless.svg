@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-label="wireless icon">
-    <circle cx="24" cy="28" r="6" fill="#00BCD4"></circle>
-    <circle cx="24" cy="28" r="4" fill="#fff" opacity="0.3"></circle>
-    <path d="M24 20C18 20 13 22 10 26" stroke="#00BCD4" stroke-width="2" stroke-linecap="round" fill="none"></path>
-    <path d="M24 16C16 16 9 19 4 25" stroke="#00BCD4" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"></path>
-    <path d="M24 20C30 20 35 22 38 26" stroke="#00BCD4" stroke-width="2" stroke-linecap="round" fill="none"></path>
-    <path d="M24 16C32 16 39 19 44 25" stroke="#00BCD4" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"></path>
-    <circle cx="24" cy="28" r="2" fill="#4CAF50"></circle>
-</svg>

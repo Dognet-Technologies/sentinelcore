@@ -116,7 +116,7 @@ npm run build                # production bundle
 npx playwright test          # E2E tests
 ```
 
-Database setup: create the database/user, then apply `migrations/*.sql` in order (the `init-vuln-db` crate assists bootstrap). The automatic `sqlx::migrate!` runner is intentionally disabled in `main.rs`; do not run blind `sqlx migrate run` against an existing instance without checking migration tracking state first.
+Database setup: create the database/user, then apply `migrations/*.sql` in order. The automatic `sqlx::migrate!` runner is intentionally disabled in `main.rs`; do not run blind `sqlx migrate run` against an existing instance without checking migration tracking state first.
 
 ## Known limits (v1.0.1)
 
