@@ -554,6 +554,193 @@ sudo ufw allow 443/tcp
 sudo ufw --force enable
 ```
 
+### INSTALLER
+The installer handles all dependencies, the database, nginx, and the systemd unit. You need a clean Debian 13 trixie host and root access — nothing else.
+1) Download the tarball and the checksum
+Save both files in the same directory on the target server.
+
+```
+bash
+wget https://dognet-technologies.online/downloads/sentinelcore-v1.0.1-beta-linux-x86_64.tar.gz
+wget https://dognet-technologies.online/downloads/sentinelcore-v1.0.1-beta-linux-x86_64.tar.gz.sha256
+```
+
+2) Verify the checksum
+The command should print sentinelcore-v1.0.1-beta-linux-x86_64.tar.gz: OK. If it fails, re-download.
+bash
+```
+sha256sum -c sentinelcore-v1.0.1-beta-linux-x86_64.tar.gz.sha256
+```
+
+3) Extract the archive
+```
+bash
+tar -xzf sentinelcore-v1.0.1-beta-linux-x86_64.tar.gz
+cd sentinelcore-v1.0.1-beta-linux-x86_64
+```
+
+4) Run the installer as root
+install.sh installs PostgreSQL, nginx, nmap, arp-scan, applies all migrations, configures nginx on port 80, registers the systemd unit, starts the service, and creates the first admin user — automatically, with no prompts.
+
+```
+bash
+sudo ./install.sh
+```
+5) Read the credentials printed at the end
+When install.sh finishes it prints the console URL and the generated admin password. Copy the password before closing the terminal — it is not stored anywhere.
+example output
+```
+   URL:        http://192.168.1.10
+   Admin:      admin  /  Xk7mR9qP2vAa1!
+   ⚠️  CAMBIA questa password al primo accesso.
+```
+6) Open the console and change the password
+Navigate to http://<server-ip> in a browser on the same network. Log in with admin and the generated password, then go to Settings → Profile and set a permanent password.
+
+```
+bash — verify service is running
+sudo systemctl status sentinelcore
+```
+
+### OVA VIRTUALBOX/VMWARE
+The OVA ships with a bridged network adapter — the VM will receive an IP from your LAN's DHCP, exactly like a physical host. VirtualBox will ask which host interface to bridge to during import. VMware users open the file with File → Open.
+
+1) Download and verify
+Download the OVA from ProtonDrive (browser required), then verify the checksum:
+→ sentinelcore-v1.0.1-beta-linux-x86_64.ova (645 MB)   SHA256
+```
+bash — verify integrity
+wget https://dognet-technologies.online/downloads/sentinelcore-v1.0.1-beta-linux-x86_64.sha256
+sha256sum -c --ignore-missing sentinelcore-v1.0.1-beta-linux-x86_64.sha256
+```
+
+2) Import — VirtualBox
+GUI: File → Import Appliance → select the OVA → choose your bridge interface when prompted.
+CLI (headless):
+
+```
+bash — VirtualBox CLI
+VBoxManage import sentinelcore-v1.0.1-beta-linux-x86_64.ova \
+    --vsys 0 --vmname sentinelcore
+
+# replace eth0 with your host's LAN interface
+VBoxManage modifyvm sentinelcore \
+    --memory 4096 --cpus 4 --bridgeadapter1 eth0
+
+VBoxManage startvm sentinelcore --type headless
+
+# wait ~2 min, then get the guest IP
+VBoxManage guestproperty get sentinelcore \
+    "/VirtualBox/GuestInfo/Net/0/V4/IP"
+```
+
+3) Import — VMware Workstation / Fusion
+GUI: File → Open → select the OVA → follow the import wizard, then edit VM settings to set the NIC to Bridged.
+CLI (ovftool):
+```
+bash — ovftool
+ovftool --name=sentinelcore \
+    sentinelcore-v1.0.1-beta-linux-x86_64.ova \
+    ~/vmware/sentinelcore
+
+# start headless (VMware Workstation Pro)
+vmrun start ~/vmware/sentinelcore/sentinelcore.vmx nogui
+
+# get IP
+vmrun getGuestIPAddress ~/vmware/sentinelcore/sentinelcore.vmx
+```
+After import, verify the NIC is set to Bridged in VM Settings → Network Adapter.
+
+4) Log in and change the password
+First boot takes ~2 minutes. Open http://<vm-ip> in a browser on the same LAN. The initial credentials are:
+initial credentials
+```
+  Username:  microcyber
+  Password:  Admin2026!!
+  SSH root:  SentinelCore1st!
+
+  ⚠  Change all three passwords on first login.
+```
+
+
+### QCOW2 KVM/PROXMOX
+Commands below target Proxmox VE. Adapt the VM ID (900) and storage pool name (local-lvm) to your environment. The disk uses the virtio bus — do not attach it as scsi or sata.
+
+1) Download and verify
+Download the qcow2 from ProtonDrive (browser required), copy it to the Proxmox host, then verify:
+
+```
+→ sentinelcore-v1.0.1-beta-linux-x86_64.qcow2 (671 MB)   SHA256
+bash — on the Proxmox host
+
+cd /tmp
+wget https://dognet-technologies.online/downloads/sentinelcore-v1.0.1-beta-linux-x86_64.sha256
+sha256sum -c --ignore-missing sentinelcore-v1.0.1-beta-linux-x86_64.sha256
+```
+
+2) Create the VM and import the disk
+```
+bash
+
+# adjust VM ID (900) and bridge (vmbr0) as needed
+qm create 900 --name sentinelcore \
+    --memory 4096 --cores 4 \
+    --net0 virtio,bridge=vmbr0
+
+# import qcow2 into storage (replace local-lvm with your pool name)
+qm importdisk 900 \
+    /tmp/sentinelcore-v1.0.1-beta-linux-x86_64.qcow2 local-lvm
+```
+
+3) Attach disk and set boot order
+After import the disk appears as unused0 in the VM config. Read the exact ID before attaching.
+```
+bash
+
+# read the disk ID assigned by Proxmox
+DISK=$(qm config 900 | grep '^unused0:' | cut -d' ' -f2-)
+
+# attach as virtio (required — not scsi/sata) and set boot
+qm set 900 --virtio0 "$DISK" --boot order=virtio0
+```
+
+4) Start — Proxmox VE
+First boot takes ~2 minutes. Check the IP from the Proxmox console or your router's DHCP leases.
+```
+bash — Proxmox VE
+qm start 900
+```
+
+5) Alternative — KVM / virt-manager
+For bare KVM with virt-install or the virt-manager GUI.
+```
+bash — virt-install (CLI)
+sudo cp sentinelcore-v1.0.1-beta-linux-x86_64.qcow2 \
+    /var/lib/libvirt/images/sentinelcore.qcow2
+
+sudo virt-install \
+    --name sentinelcore \
+    --memory 4096 --vcpus 4 \
+    --disk /var/lib/libvirt/images/sentinelcore.qcow2,bus=virtio \
+    --network bridge=br0,model=virtio \
+    --os-variant debian12 \
+    --boot hd \
+    --import --noautoconsole
+
+virt-manager GUI: File → New Virtual Machine → Import existing disk image → select the qcow2 → set RAM to 4096 MB, CPU to 4 → Network: bridge (br0 or your LAN bridge).
+```
+
+6) Log in and change the password
+Open http://<vm-ip> in a browser on the same LAN. The initial credentials are:
+initial credentials
+```
+  Username:  microcyber
+  Password:  Admin2026!!
+  SSH root:  SentinelCore1st!
+
+  ⚠  Change all three passwords on first login.
+```
+
 ## Troubleshooting
 
 | Symptom | Cause / fix |
