@@ -34,7 +34,7 @@ IMG_CACHE="${DEBIAN_CLOUD_IMG_CACHE:-$HOME/.cache/sentinelcore-build/debian-13-c
 VM_RAM=2048    # MB
 VM_CPUS=2
 DISK_SIZE=20G
-BUILD_TIMEOUT=900   # secondi — l'install.sh non compila nulla, ~3 min attesi
+BUILD_TIMEOUT=2400  # secondi — 40 min ceiling (TCG ~15-20 min, KVM ~5 min)
 HTTP_PORT=18080
 
 log() { echo -e "\n\033[1;36m▶  $*\033[0m"; }
@@ -58,12 +58,14 @@ done
 [ -n "$ISO_CMD" ] || die "Serve cloud-localds, genisoimage o mkisofs per il cloud-init ISO.
        sudo apt-get install cloud-image-utils"
 
-KVM_FLAGS=""
-if [ -w /dev/kvm ]; then
-    KVM_FLAGS="-enable-kvm -cpu host"
-    echo "  KVM disponibile — build veloce"
+KVM_FLAGS="-smp $VM_CPUS"
+# Nota: KVM causa entry failures random su kernel 6.19+ con QEMU 10.x (CR3=0 state corruption).
+# Usiamo TCG (emulazione software) che è più lenta ma affidabile su tutti gli host.
+if [ -w /dev/kvm ] && [ "${BUILD_USE_KVM:-0}" = "1" ]; then
+    KVM_FLAGS="-enable-kvm -smp 1"
+    echo "  KVM abilitato (BUILD_USE_KVM=1)"
 else
-    echo "  ⚠️  KVM non disponibile — build solo software (può richiedere 20+ min)"
+    echo "  Emulazione software TCG (affidabile su kernel 6.19+, ~15 min)"
 fi
 
 # ── Workspace ────────────────────────────────────────────────────────────────
@@ -92,6 +94,9 @@ echo "  Disco pronto: $(qemu-img info "$WORK_DIR/disk.qcow2" | grep 'virtual siz
 
 # ── 2. HTTP server locale ────────────────────────────────────────────────────
 log "2/7  HTTP server locale (build host → VM via NAT 10.0.2.2)"
+# Libera la porta se occupata da un run precedente
+fuser -k "${HTTP_PORT}/tcp" 2>/dev/null || true
+sleep 1
 python3 -m http.server --directory "$REPO_ROOT" "$HTTP_PORT" >/dev/null 2>&1 &
 HTTP_PID=$!
 echo "  PID $HTTP_PID   http://10.0.2.2:${HTTP_PORT}/dist/${TARBALL_NAME}"
@@ -137,7 +142,6 @@ log "4/7  Provisioning VM (attendi ~5 min con KVM)"
 qemu-system-x86_64 \
     -name "sentinelcore-vm-build" \
     -m "$VM_RAM" \
-    -smp "$VM_CPUS" \
     $KVM_FLAGS \
     -drive "file=$WORK_DIR/disk.qcow2,format=qcow2,if=virtio" \
     -drive "file=$WORK_DIR/cidata.iso,format=raw,if=virtio,readonly=on" \
@@ -156,11 +160,11 @@ while kill -0 "$QEMU_PID" 2>/dev/null; do
     echo -n "."
     if [ "$WAITED" -ge "$BUILD_TIMEOUT" ]; then
         echo ""
-        echo "TIMEOUT (${BUILD_TIMEOUT}s). Log VM: $WORK_DIR/qemu-console.log"
-        # Copia log prima del cleanup
+        echo "TIMEOUT (${BUILD_TIMEOUT}s). Ultime righe console VM:"
         cp "$WORK_DIR/qemu-console.log" "$OUT/build-vm-console.log" 2>/dev/null || true
+        tail -20 "$OUT/build-vm-console.log" 2>/dev/null || true
         kill "$QEMU_PID" 2>/dev/null || true
-        die "Build VM non terminata. Controlla: $OUT/build-vm-console.log"
+        die "Build VM non terminata. Log completo: $OUT/build-vm-console.log"
     fi
 done
 wait "$QEMU_PID" 2>/dev/null || true
@@ -176,126 +180,45 @@ qemu-img convert -f qcow2 -O qcow2 -c \
     "$WORK_DIR/disk.qcow2" "$QCOW2_OUT"
 echo "  $(ls -lh "$QCOW2_OUT" | awk '{print $5}')"
 
-# ── 6. OVA (VirtualBox / VMware) ────────────────────────────────────────────
-log "6/7  Conversione OVA"
-VMDK="$WORK_DIR/${VM_NAME}.vmdk"
-OVF="$WORK_DIR/${VM_NAME}.ovf"
-MF="$WORK_DIR/${VM_NAME}.mf"
+# ── 6. OVA (VirtualBox) via VBoxManage — formato nativo, massima compatibilità
+log "6/7  Generazione OVA (VBoxManage)"
 OVA_OUT="$OUT/${VM_NAME}.ova"
 
-echo "  Conversione VMDK (streamOptimized)..."
-qemu-img convert -f qcow2 -O vmdk -o subformat=streamOptimized \
-    "$QCOW2_OUT" "$VMDK"
+command -v VBoxManage >/dev/null || die "VBoxManage non trovato.
+       sudo apt-get install virtualbox  oppure installa VirtualBox da virtualbox.org"
 
-VMDK_SIZE="$(stat -c%s "$VMDK")"
-DISK_CAP_BYTES="$(qemu-img info --output=json "$QCOW2_OUT" \
-    | python3 -c 'import sys,json; print(json.load(sys.stdin)["virtual-size"])')"
+VDI="$WORK_DIR/${VM_NAME}.vdi"
+VBOX_VM="sc-ova-export-$$"
 
-echo "  Generazione OVF..."
-cat > "$OVF" <<OVFXML
-<?xml version="1.0" encoding="UTF-8"?>
-<Envelope ovf:version="1.0" xml:lang="en-US"
-          xmlns="http://schemas.dmtf.org/ovf/envelope/1"
-          xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
-          xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData"
-          xmlns:vssd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData">
+echo "  Conversione qcow2 → VDI..."
+qemu-img convert -f qcow2 -O vdi "$QCOW2_OUT" "$VDI"
+echo "  VDI: $(ls -lh "$VDI" | awk '{print $5}')"
 
-  <References>
-    <File ovf:href="${VM_NAME}.vmdk" ovf:id="file1" ovf:size="${VMDK_SIZE}"/>
-  </References>
+echo "  Creazione VM temporanea VirtualBox..."
+# Rileva interfaccia bridge dell'host per la scheda di rete dell'OVA
+HOST_IFACE="$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
+[ -z "$HOST_IFACE" ] && HOST_IFACE="eth0"
+echo "  Bridge adapter: $HOST_IFACE"
+VBoxManage createvm --name "$VBOX_VM" --ostype Debian_64 --register
+VBoxManage modifyvm "$VBOX_VM" \
+    --memory 4096 --cpus 4 \
+    --nic1 bridged --bridgeadapter1 "$HOST_IFACE" --nictype1 virtio
+VBoxManage storagectl "$VBOX_VM" --name "SATA" --add sata --controller IntelAhci
+VBoxManage storageattach "$VBOX_VM" \
+    --storagectl "SATA" --port 0 --device 0 \
+    --type hdd --medium "$VDI"
 
-  <DiskSection>
-    <Info>Virtual disk information</Info>
-    <Disk ovf:capacity="${DISK_CAP_BYTES}" ovf:capacityAllocationUnits="byte"
-          ovf:diskId="vmdisk1" ovf:fileRef="file1"
-          ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized"/>
-  </DiskSection>
+echo "  Export OVA nativa..."
+rm -f "$OVA_OUT"
+VBoxManage export "$VBOX_VM" \
+    --output "$OVA_OUT" \
+    --ovf20 \
+    --vsys 0 --product "SentinelCore" \
+    --vsys 0 --vendor "Dognet Technologies" \
+    --vsys 0 --version "${VERSION}" \
+    --vsys 0 --description "Credenziali iniziali e URL in /etc/motd al primo avvio. CPU: 4 core, RAM: 4 GB, disco: 20 GB. Rete: scheda bridge."
 
-  <NetworkSection>
-    <Info>Network adapters</Info>
-    <Network ovf:name="NAT">
-      <Description>NAT — l'IP assegnato appare in /etc/motd al primo avvio.</Description>
-    </Network>
-  </NetworkSection>
-
-  <VirtualSystem ovf:id="SentinelCore">
-    <Info>SentinelCore Vulnerability Management Appliance</Info>
-    <Name>SentinelCore ${VERSION}</Name>
-
-    <ProductSection>
-      <Info>Product information</Info>
-      <Product>SentinelCore</Product>
-      <Vendor>Dognet Technologies</Vendor>
-      <Version>${VERSION}</Version>
-      <FullVersion>${VERSION} (Debian 13 amd64)</FullVersion>
-    </ProductSection>
-
-    <AnnotationSection>
-      <Info>Usage notes</Info>
-      <Annotation>Credenziali iniziali e URL in /etc/motd al primo avvio. CPU: 2 core min, RAM: 2 GB min, disco: 20 GB.</Annotation>
-    </AnnotationSection>
-
-    <VirtualHardwareSection>
-      <Info>Hardware minimo consigliato</Info>
-      <System>
-        <vssd:ElementName>Virtual Hardware Family</vssd:ElementName>
-        <vssd:InstanceID>0</vssd:InstanceID>
-        <vssd:VirtualSystemIdentifier>SentinelCore</vssd:VirtualSystemIdentifier>
-        <vssd:VirtualSystemType>vmx-13 virtualbox-2.2</vssd:VirtualSystemType>
-      </System>
-      <Item>
-        <rasd:ElementName>2 virtual CPUs</rasd:ElementName>
-        <rasd:InstanceID>1</rasd:InstanceID>
-        <rasd:ResourceType>3</rasd:ResourceType>
-        <rasd:VirtualQuantity>2</rasd:VirtualQuantity>
-      </Item>
-      <Item>
-        <rasd:AllocationUnits>MegaBytes</rasd:AllocationUnits>
-        <rasd:ElementName>2048 MB of memory</rasd:ElementName>
-        <rasd:InstanceID>2</rasd:InstanceID>
-        <rasd:ResourceType>4</rasd:ResourceType>
-        <rasd:VirtualQuantity>2048</rasd:VirtualQuantity>
-      </Item>
-      <Item>
-        <rasd:Address>0</rasd:Address>
-        <rasd:ElementName>SCSI Controller</rasd:ElementName>
-        <rasd:InstanceID>3</rasd:InstanceID>
-        <rasd:ResourceSubType>lsilogic</rasd:ResourceSubType>
-        <rasd:ResourceType>6</rasd:ResourceType>
-      </Item>
-      <Item>
-        <rasd:AddressOnParent>0</rasd:AddressOnParent>
-        <rasd:ElementName>Disk Image</rasd:ElementName>
-        <rasd:HostResource>ovf:/disk/vmdisk1</rasd:HostResource>
-        <rasd:InstanceID>4</rasd:InstanceID>
-        <rasd:Parent>3</rasd:Parent>
-        <rasd:ResourceType>17</rasd:ResourceType>
-      </Item>
-      <Item>
-        <rasd:AddressOnParent>0</rasd:AddressOnParent>
-        <rasd:AutomaticAllocation>true</rasd:AutomaticAllocation>
-        <rasd:Connection>NAT</rasd:Connection>
-        <rasd:ElementName>Ethernet adapter</rasd:ElementName>
-        <rasd:InstanceID>5</rasd:InstanceID>
-        <rasd:ResourceSubType>E1000</rasd:ResourceSubType>
-        <rasd:ResourceType>10</rasd:ResourceType>
-      </Item>
-    </VirtualHardwareSection>
-  </VirtualSystem>
-</Envelope>
-OVFXML
-
-echo "  Generazione manifest SHA256..."
-OVF_HASH="$(sha256sum "$OVF"  | awk '{print $1}')"
-VMDK_HASH="$(sha256sum "$VMDK" | awk '{print $1}')"
-cat > "$MF" <<MF
-SHA256(${VM_NAME}.ovf)= ${OVF_HASH}
-SHA256(${VM_NAME}.vmdk)= ${VMDK_HASH}
-MF
-
-echo "  Bundle OVA (tar, senza compressione — standard OVA)..."
-( cd "$WORK_DIR" && tar --format=gnu -cf "$OVA_OUT" \
-    "${VM_NAME}.ovf" "${VM_NAME}.vmdk" "${VM_NAME}.mf" )
+VBoxManage unregistervm "$VBOX_VM" --delete 2>/dev/null || true
 echo "  $(ls -lh "$OVA_OUT" | awk '{print $5}')"
 
 # ── 7. Checksum finali ───────────────────────────────────────────────────────

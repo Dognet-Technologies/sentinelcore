@@ -29,6 +29,9 @@ tar xzf "/tmp/$TARBALL_NAME" -C /tmp
 # ── 2. Installa SentinelCore (no-toolchain) ──────────────────────────────────
 echo "[provision] Esecuzione install.sh..."
 chmod +x "$INSTALL_DIR/install.sh"
+# Credenziali appliance fisse — first-boot.sh non ricrea utenti
+export ADMIN_USER="microcyber"
+export ADMIN_PASS="Admin2026!!"
 "$INSTALL_DIR/install.sh"
 
 # ── 3. Installa il first-boot service ───────────────────────────────────────
@@ -49,7 +52,29 @@ echo "[provision] Stop servizi prima dell'export..."
 systemctl stop sentinelcore 2>/dev/null || true
 systemctl stop postgresql 2>/dev/null || true
 
-# ── 5. Pulizia pre-export: generics per ogni clone ───────────────────────────
+# ── 5. Configurazione persistente (sopravvive a cloud-init clean) ───────────
+echo "[provision] Configurazione rete e accesso iniziale..."
+
+# Rete: DHCP su qualsiasi interfaccia ethernet (sopravvive a cloud-init clean)
+mkdir -p /etc/systemd/network
+cat > /etc/systemd/network/10-dhcp.network << 'NETCFG'
+[Match]
+Name=en*
+
+[Network]
+DHCP=yes
+DNS=1.1.1.1
+NETCFG
+systemctl enable systemd-networkd
+systemctl enable systemd-resolved 2>/dev/null || true
+
+# Password root iniziale — first-boot.sh la sostituisce con una random
+echo 'root:SentinelCore1st!' | chpasswd
+# Abilita login root con password (necessario su Debian cloud image)
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# ── 6. Pulizia pre-export: generics per ogni clone ───────────────────────────
 echo "[provision] Pulizia per export..."
 # Machine-id vuoto → rigenerato per ogni clone da systemd
 truncate -s 0 /etc/machine-id

@@ -38,8 +38,11 @@ fi
 echo "[3/7] Generazione nuovi segreti..."
 NEW_DB_PASS="$(openssl rand -hex 24)"
 NEW_JWT="$(openssl rand -hex 32)"
-# Password conforme alla policy (>=12 char, upper+lower+num+special)
-ADMIN_PASS="$(openssl rand -base64 14 | tr -dc 'A-Za-z0-9' | cut -c1-12)Aa1!"
+# Credenziali web fisse per il primo accesso
+ADMIN_USER="microcyber"
+ADMIN_PASS="Admin2026!!"
+# Password root fissa e documentabile (da cambiare dopo il primo accesso)
+ROOT_PASS="SentinelCore1st!"
 
 # ── 4. Aggiorna production.yaml ──────────────────────────────────────────────
 echo "[4/7] Aggiornamento config..."
@@ -54,8 +57,8 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 \
     -c "ALTER ROLE $DB_USER PASSWORD '$NEW_DB_PASS';" >/dev/null
 
 # ── 6. Riavvia sentinelcore con la nuova config, ricrea admin ────────────────
-echo "[6/7] Riavvio backend e creazione admin..."
-systemctl restart sentinelcore
+echo "[6/7] Riavvio backend e verifica admin..."
+systemctl restart sentinelcore || true
 
 echo "    Attendo risposta backend (max 60s)..."
 HEALTH_OK=0
@@ -69,34 +72,13 @@ done
 
 ADMIN_STATUS="ERRORE"
 if [ "$HEALTH_OK" = "1" ]; then
-    # Delete admin (fresco install: nessuna FK pendente)
-    PGPASSWORD="$NEW_DB_PASS" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -q \
-        -c "DELETE FROM users WHERE username='admin';" 2>/dev/null || \
-        echo "    WARN: eliminazione admin non riuscita — verrà aggiunto un secondo admin"
-
-    JAR="$(mktemp)"
-    # shellcheck disable=SC2064
-    trap "rm -f '$JAR'" EXIT
-
-    curl -s -c "$JAR" http://127.0.0.1:8080/api/health >/dev/null
-    CSRF="$(awk '/XSRF-TOKEN/{print $7}' "$JAR" 2>/dev/null || true)"
-
-    curl -s -b "$JAR" \
-        -H "X-CSRF-Token: $CSRF" \
-        -H 'Content-Type: application/json' \
-        -X POST http://127.0.0.1:8080/api/auth/register \
-        -d "{\"username\":\"admin\",\"email\":\"admin@local\",\"password\":\"$ADMIN_PASS\",\"skip_email_verification\":true}" \
-        >/dev/null 2>&1
-
-    PGPASSWORD="$NEW_DB_PASS" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -q \
-        -c "UPDATE users SET role='admin' WHERE username='admin';" >/dev/null 2>&1
-
+    # L'utente è già stato creato da install.sh con le credenziali fisse.
+    # Qui verifichiamo solo che esista ed abbia ruolo admin.
     ROLE="$(PGPASSWORD="$NEW_DB_PASS" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -tAc \
-        "SELECT role FROM users WHERE username='admin'" 2>/dev/null || true)"
-
+        "SELECT role FROM users WHERE username='$ADMIN_USER'" 2>/dev/null || true)"
     [ "$ROLE" = "admin" ] && ADMIN_STATUS="OK"
 else
-    echo "    WARN: backend non risponde (health=$CODE) — skip ricreazione admin"
+    echo "    WARN: backend non risponde (health=$CODE)"
 fi
 
 # ── 7. Scrivi credenziali su /etc/motd ───────────────────────────────────────
@@ -105,14 +87,36 @@ SERVER_IP="$(ip -4 route get 1.1.1.1 2>/dev/null \
     | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')" || SERVER_IP="<ip-vm>"
 
 if [ "$ADMIN_STATUS" = "OK" ]; then
-    CRED_BLOCK="  Utente:     admin
-  Password:   $ADMIN_PASS
+    CRED_BLOCK="  Web UI:
+    Utente:   $ADMIN_USER
+    Password: $ADMIN_PASS
 
-  CAMBIA la password al primo accesso (Impostazioni → Profilo)."
+  SSH / Console:
+    Utente:   root
+    Password: $ROOT_PASS
+
+  CAMBIA entrambe le password al primo accesso."
 else
-    CRED_BLOCK="  Credenziali admin: creazione non riuscita.
-  Vedi: $LOG"
+    CRED_BLOCK="  Credenziali web admin: creazione non riuscita.
+  Vedi: $LOG
+
+  SSH / Console:
+    Utente:   root
+    Password: $ROOT_PASS"
 fi
+
+# Scrivi anche in /etc/issue.d/ — visibile PRIMA del login prompt
+mkdir -p /etc/issue.d
+cat > /etc/issue.d/sentinelcore.issue <<ISSUE
+
+╔══════════════════════════════════════════════════════════════╗
+║          SentinelCore — Credenziali iniziali istanza         ║
+╠══════════════════════════════════════════════════════════════╣
+  URL:        http://$SERVER_IP
+$CRED_BLOCK
+╚══════════════════════════════════════════════════════════════╝
+
+ISSUE
 
 cat > /etc/motd <<MOTD
 
