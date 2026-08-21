@@ -68,8 +68,12 @@ NETCFG
 systemctl enable systemd-networkd
 systemctl enable systemd-resolved 2>/dev/null || true
 
-# Password root iniziale — first-boot.sh la sostituisce con una random
+# Password root di default, documentata (README/motd) — l'utente la
+# cambia al primo accesso: forzato da chage, non solo un auspicio nel
+# banner. NB: first-boot.sh NON la ruota (rigenera solo DB password/JWT),
+# resta questa finche' l'operatore non la cambia.
 echo 'root:SentinelCore1st!' | chpasswd
+chage -d 0 root
 # Abilita login root con password (necessario su Debian cloud image)
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
