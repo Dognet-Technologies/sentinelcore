@@ -133,7 +133,18 @@ if [ -f "$PKG_DIR/templates/nginx-sentinelcore.conf" ]; then
   # MAI soffocare l'esito di `nginx -t`: se la nuova conf non e' valida su
   # questo host, nginx resta silenziosamente su quella vecchia — l'operatore
   # deve saperlo, non scoprirlo da solo mesi dopo.
-  if nginx -t 2>&1 | tee /dev/stderr | grep -q "syntax is ok"; then
+  #
+  # NB: NON usare `nginx -t | tee ... | grep ...` — sotto `set -o pipefail`
+  # il risultato del pipe puo' riflettere un problema di tee/grep invece
+  # del vero esito del test (visto succedere in pratica: nginx -t passava
+  # a mano ma la pipe restituiva comunque errore). Cattura output+exit code
+  # separatamente, senza far abortire lo script per via di `set -e`.
+  set +e
+  NGINX_TEST_OUTPUT="$(nginx -t 2>&1)"
+  NGINX_TEST_STATUS=$?
+  set -e
+  echo "$NGINX_TEST_OUTPUT"
+  if [ "$NGINX_TEST_STATUS" -eq 0 ]; then
     systemctl reload nginx
   else
     echo ""
