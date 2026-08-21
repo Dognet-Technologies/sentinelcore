@@ -35,6 +35,10 @@ mkdir -p "$STAGE/frontend"; cp -a vulnerability-manager-frontend/build/. "$STAGE
 echo "▶ Assemblaggio artefatti"
 mkdir -p "$STAGE/migrations"; cp -a vulnerability-manager/migrations/*.sql "$STAGE/migrations/"
 [ -d vulnerability-manager/plugins ] && { mkdir -p "$STAGE/plugins"; cp -a vulnerability-manager/plugins/. "$STAGE/plugins/"; } || true
+# Avatar predefiniti (2 per ruolo, Profilo → scegli avatar) — asset statici
+# nostri, non dati utente, quindi viaggiano nel pacchetto come
+# migrations/plugins invece che nella uploads/ dell'installazione target.
+[ -d vulnerability-manager/uploads/avatars/presets ] && { mkdir -p "$STAGE/avatar-presets"; cp -a vulnerability-manager/uploads/avatars/presets/. "$STAGE/avatar-presets/"; } || true
 cp -a packaging/templates "$STAGE/templates"
 install -m 0755 packaging/install.sh "$STAGE/install.sh"
 install -m 0755 packaging/upgrade.sh "$STAGE/upgrade.sh"

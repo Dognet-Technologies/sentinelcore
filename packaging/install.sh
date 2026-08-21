@@ -68,6 +68,7 @@ install -m 0755 "$PKG_DIR/vulnerability-manager" "$APP/vulnerability-manager"
 rm -rf "$FRONTEND"/*; cp -a "$PKG_DIR/frontend/." "$FRONTEND/"
 mkdir -p "$APP/migrations"; cp -a "$PKG_DIR/migrations/." "$APP/migrations/"
 [ -d "$PKG_DIR/plugins" ] && cp -a "$PKG_DIR/plugins/." "$APP/plugins/" || true
+[ -d "$PKG_DIR/avatar-presets" ] && { mkdir -p "$APP/uploads/avatars/presets"; cp -a "$PKG_DIR/avatar-presets/." "$APP/uploads/avatars/presets/"; } || true
 
 # ── 4. PostgreSQL: user + db (password per-istanza) ─────────────────────────
 log "4/9 PostgreSQL: utente e database"

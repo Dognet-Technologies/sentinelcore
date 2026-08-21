@@ -103,6 +103,7 @@ rm -rf "${APP:?}/migrations"
 mkdir -p "$APP/migrations"
 cp -a "$PKG_DIR/migrations/." "$APP/migrations/"
 [ -d "$PKG_DIR/plugins" ] && cp -a "$PKG_DIR/plugins/." "$APP/plugins/" || true
+[ -d "$PKG_DIR/avatar-presets" ] && { mkdir -p "$APP/uploads/avatars/presets"; cp -a "$PKG_DIR/avatar-presets/." "$APP/uploads/avatars/presets/"; } || true
 # systemd unit / nginx conf possono cambiare fra versioni (timeout, limiti,
 # nuove route proxy) — NON toccano production.yaml, segreti o certificati TLS.
 if [ -f "$PKG_DIR/templates/sentinelcore.service" ]; then
