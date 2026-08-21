@@ -32,12 +32,12 @@ security:
     # Impostato da install.sh sull'IP/host rilevato. Se l'IP cambia (DHCP),
     # aggiorna questa lista e riavvia: sudo systemctl restart sentinelcore
     allowed_origins:
-      - "http://@@SERVER_NAME@@"
+      - "https://@@SERVER_NAME@@"
   csrf:
     enabled: true
-    secure_cookie: false   # true solo se servi in HTTPS
+    secure_cookie: true    # HTTPS di default (nginx termina TLS, vedi nginx-sentinelcore.conf)
   cookies:
-    secure: false          # true solo se servi in HTTPS
+    secure: true           # HTTPS di default (nginx termina TLS, vedi nginx-sentinelcore.conf)
     same_site: "Strict"
 
 plugins:
@@ -52,3 +52,19 @@ network:
 log:
   level: "info"
   file: null
+
+email:
+  # SMTP per le notifiche opzionali (Settings → Notifiche: alert critical,
+  # riepilogo settimanale). Non generabile automaticamente da install.sh —
+  # vanno inseriti a mano dopo l'installazione, poi:
+  # sudo systemctl restart sentinelcore
+  smtp_server: "smtp.gmail.com"
+  smtp_username: ""
+  smtp_password: ""
+
+notifications:
+  # Bot Telegram condiviso dall'istanza per gli alert critical sul canale
+  # del team (pagina Teams → Contatti & integrazioni → Telegram chat ID).
+  # Un solo bot per tutta l'istanza; ogni team indica solo il proprio
+  # chat_id. Vuoto di default — nessun invio Telegram finche' non impostato.
+  telegram_bot_token: ""

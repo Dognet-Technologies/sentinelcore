@@ -23,7 +23,9 @@ sudo ./install.sh                       # rileva IP/NIC, genera i segreti
 sudo ./install.sh --server-name 10.0.0.5 --iface ens18
 ```
 
-`install.sh` installa solo i **runtime** (PostgreSQL, nginx, nmap, arp-scan), crea utente/DB con **password generata**, applica le migration, scrive `production.yaml` con **JWT secret per-istanza** e CORS sull'IP rilevato, configura systemd + nginx, e crea un utente **admin** (credenziali stampate a fine install — da cambiare al primo accesso).
+`install.sh` installa solo i **runtime** (PostgreSQL, nginx, nmap, arp-scan), crea utente/DB con **password generata**, applica le migration, scrive `production.yaml` con **JWT secret per-istanza** e CORS sull'IP rilevato, genera un **certificato TLS self-signed** per-istanza e configura nginx per servire tutto in **HTTPS di default** (redirect automatico da HTTP), configura systemd, e crea un utente **admin** (credenziali stampate a fine install — da cambiare al primo accesso).
+
+Per esporre l'istanza su internet con un dominio reale e un certificato Let's Encrypt/certbot al posto del self-signed, vedi [`HTTPS.md`](HTTPS.md).
 
 ## Contenuto del tarball
 

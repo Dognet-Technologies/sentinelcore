@@ -47,30 +47,30 @@ if [ -z "$NET_IFACE" ]; then
   NET_IFACE="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
   [ -z "$NET_IFACE" ] && NET_IFACE="eth0"
 fi
-echo "Server origin (CORS): http://$SERVER_NAME   |   NIC discovery: $NET_IFACE"
+echo "Server origin (CORS): https://$SERVER_NAME   |   NIC discovery: $NET_IFACE"
 
 # ── 1. runtime deps (NIENTE toolchain di build) ─────────────────────────────
-log "1/8 Installazione dipendenze runtime"
+log "1/9 Installazione dipendenze runtime"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y --no-install-recommends \
   postgresql nginx nmap arp-scan ca-certificates curl openssl libssl3 sudo >/dev/null
 
 # ── 2. utente di servizio + directory ───────────────────────────────────────
-log "2/8 Utente di servizio e directory"
+log "2/9 Utente di servizio e directory"
 id -u "$SVC_USER" >/dev/null 2>&1 || \
   useradd --system --home "$BASE" --shell /usr/sbin/nologin "$SVC_USER"
 mkdir -p "$APP" "$FRONTEND" "$LOGDIR" "$APP/plugins" "$APP/reports" "$APP/uploads" "$APP/config"
 
 # ── 3. copia artefatti compilati ────────────────────────────────────────────
-log "3/8 Copia binario + frontend + migration"
+log "3/9 Copia binario + frontend + migration"
 install -m 0755 "$PKG_DIR/vulnerability-manager" "$APP/vulnerability-manager"
 rm -rf "$FRONTEND"/*; cp -a "$PKG_DIR/frontend/." "$FRONTEND/"
 mkdir -p "$APP/migrations"; cp -a "$PKG_DIR/migrations/." "$APP/migrations/"
 [ -d "$PKG_DIR/plugins" ] && cp -a "$PKG_DIR/plugins/." "$APP/plugins/" || true
 
 # ── 4. PostgreSQL: user + db (password per-istanza) ─────────────────────────
-log "4/8 PostgreSQL: utente e database"
+log "4/9 PostgreSQL: utente e database"
 systemctl enable --now postgresql >/dev/null 2>&1 || true
 DB_EXISTS="$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || true)"
 if [ "$DB_EXISTS" = "1" ] && [ "$FORCE" -ne 1 ]; then
@@ -92,7 +92,7 @@ sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 
   sudo -u postgres createdb -O "$DB_USER" "$DB_NAME"
 
 # ── 5. migration (in ordine) ────────────────────────────────────────────────
-log "5/8 Applicazione migration"
+log "5/9 Applicazione migration"
 DBURL="postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME"
 for f in $(ls "$APP/migrations"/*.sql | sort); do
   PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 -q -f "$f" \
@@ -101,7 +101,7 @@ done
 echo "Applicate $(ls "$APP/migrations"/*.sql | wc -l) migration."
 
 # ── 6. config con segreti generati ──────────────────────────────────────────
-log "6/8 Configurazione (segreti per-istanza)"
+log "6/9 Configurazione (segreti per-istanza)"
 JWT_SECRET="$(openssl rand -hex 32)"
 sed -e "s#@@DB_PASSWORD@@#$DB_PASSWORD#g" \
     -e "s#@@JWT_SECRET@@#$JWT_SECRET#g" \
@@ -110,8 +110,25 @@ sed -e "s#@@DB_PASSWORD@@#$DB_PASSWORD#g" \
     "$PKG_DIR/templates/production.yaml.tmpl" > "$APP/config/production.yaml"
 chmod 600 "$APP/config/production.yaml"
 
-# ── 7. systemd + nginx ──────────────────────────────────────────────────────
-log "7/8 systemd + nginx"
+# ── 7. certificato TLS self-signed (HTTPS di default, uso LAN) ──────────────
+# Let's Encrypt/certbot richiede un dominio pubblico risolvibile via DNS: non
+# funziona su IP nudo ne' in LAN, quindi qui generiamo un certificato
+# self-signed cosi' il traffico e' cifrato di default in ogni deploy. Per
+# esporre l'istanza su internet con un dominio reale, vedi packaging/HTTPS.md.
+log "7/9 Certificato TLS self-signed"
+TLS_DIR=/etc/ssl/sentinelcore
+mkdir -p "$TLS_DIR"
+SAN_TYPE="DNS"
+echo "$SERVER_NAME" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' && SAN_TYPE="IP"
+openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
+  -keyout "$TLS_DIR/sentinelcore.key" -out "$TLS_DIR/sentinelcore.crt" \
+  -subj "/CN=$SERVER_NAME" \
+  -addext "subjectAltName=$SAN_TYPE:$SERVER_NAME" >/dev/null 2>&1
+chmod 600 "$TLS_DIR/sentinelcore.key"
+chmod 644 "$TLS_DIR/sentinelcore.crt"
+
+# ── 8. systemd + nginx ──────────────────────────────────────────────────────
+log "8/9 systemd + nginx"
 chown -R "$SVC_USER:$SVC_USER" "$BASE" "$LOGDIR"
 install -m 0644 "$PKG_DIR/templates/sentinelcore.service" /etc/systemd/system/sentinelcore.service
 install -m 0644 "$PKG_DIR/templates/nginx-sentinelcore.conf" /etc/nginx/sites-available/sentinelcore
@@ -124,8 +141,8 @@ nginx -t >/dev/null 2>&1 && systemctl reload nginx
 systemctl daemon-reload
 systemctl enable --now sentinelcore >/dev/null 2>&1
 
-# ── 8. health + admin ───────────────────────────────────────────────────────
-log "8/8 Verifica e creazione admin"
+# ── 9. health + admin ───────────────────────────────────────────────────────
+log "9/9 Verifica e creazione admin"
 # Da qui i fallimenti NON devono abortire l'install (gia' a posto a monte).
 set +e
 for i in $(seq 1 30); do
@@ -161,7 +178,10 @@ cat <<EOF
 
 ────────────────────────────────────────────────────────────────────
  ✅ SentinelCore installato.
-   URL:        http://$SERVER_NAME
+   URL:        https://$SERVER_NAME
+               ⚠️  Certificato TLS self-signed: il browser mostrera' un
+               avviso "non sicuro" al primo accesso — atteso per uso LAN.
+               Per un dominio pubblico + Let's Encrypt vedi packaging/HTTPS.md.
    Backend:    127.0.0.1:8080  (health: $HEALTH)
    Servizio:   systemctl status sentinelcore
    Config:     $APP/config/production.yaml  (segreti generati, chmod 600)
@@ -179,6 +199,15 @@ EOF
 fi
 cat <<EOF
    Nota CORS:  se l'IP cambia (DHCP), aggiorna security.cors.allowed_origins
-               in production.yaml e: sudo systemctl restart sentinelcore
+               in production.yaml, rigenera il certificato TLS (vedi
+               packaging/HTTPS.md) e: sudo systemctl restart sentinelcore
+   Nota Email: le notifiche opzionali (alert critical, riepilogo
+               settimanale) richiedono credenziali SMTP reali in
+               production.yaml (sezione email:, vuota di default) e un
+               restart del servizio.
+   Nota Bot:   l'alert critical sul canale Telegram di un team richiede
+               notifications.telegram_bot_token in production.yaml
+               (vuoto di default) — lo Slack webhook invece è per-team
+               e non richiede configurazione a livello istanza.
 ────────────────────────────────────────────────────────────────────
 EOF
