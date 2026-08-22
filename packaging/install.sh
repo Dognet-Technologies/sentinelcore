@@ -54,7 +54,12 @@ log "1/9 Installazione dipendenze runtime"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y --no-install-recommends \
-  postgresql nginx nmap arp-scan ca-certificates curl openssl libssl3 sudo >/dev/null
+  postgresql nginx nmap arp-scan ca-certificates curl openssl libssl3 sudo \
+  avahi-utils samba-common-bin >/dev/null
+# avahi-utils (avahi-resolve) e samba-common-bin (nmblookup): risoluzione
+# hostname via mDNS/.local e NetBIOS per i device di rete scoperti da ARP
+# scan che non hanno un record DNS inverso (tipico di telefoni/laptop su
+# LAN domestiche/uffici senza DNS interno) — vedi network::scanner::enrich_hostnames.
 
 # ── 2. utente di servizio + directory ───────────────────────────────────────
 log "2/9 Utente di servizio e directory"
