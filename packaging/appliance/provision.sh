@@ -68,6 +68,16 @@ NETCFG
 systemctl enable systemd-networkd
 systemctl enable systemd-resolved 2>/dev/null || true
 
+# La cloud image Debian abilita di default serial-getty@ttyS0 (kernel
+# cmdline console=ttyS0,115200). Negli hypervisor su cui viene clonata
+# l'appliance (VirtualBox/QEMU con export OVA/qcow2 "headless") la UART
+# emulata spesso non ha un backend reale collegato: agetty fallisce
+# SEMPRE tcgetattr() con "could not get terminal name: -22" e systemd lo
+# rispawna all'infinito, intasando i log (migliaia di righe/giorno).
+# L'accesso all'appliance e' comunque via rete (SSH/HTTPS), quindi
+# mascheriamo il servizio invece di lasciarlo in loop.
+systemctl mask serial-getty@ttyS0.service
+
 # Password root di default, documentata (README/motd) — l'utente la
 # cambia al primo accesso: forzato da chage, non solo un auspicio nel
 # banner. NB: first-boot.sh NON la ruota (rigenera solo DB password/JWT),
