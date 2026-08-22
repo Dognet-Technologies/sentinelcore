@@ -1,0 +1,20 @@
+[Unit]
+Description=SentinelCore – rigenerazione segreti al primo avvio
+Documentation=file:///opt/sentinelsuite/sentinelcore/app/first-boot.sh
+After=postgresql.service
+Wants=postgresql.service
+# Garantisce che first-boot preceda sentinelcore quando entrambi sono abilitati.
+# Al termine first-boot avvia sentinelcore e disabilita se stesso, quindi dal
+# secondo avvio sentinelcore parte normalmente senza passare da qui.
+Before=sentinelcore.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/sentinelsuite/sentinelcore/app/first-boot.sh
+RemainAfterExit=no
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

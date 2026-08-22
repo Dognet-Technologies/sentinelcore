@@ -152,9 +152,9 @@ for i in $(seq 1 30); do
 done
 HEALTH="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health 2>/dev/null)"
 
-ADMIN_USER="admin"
+ADMIN_USER="${ADMIN_USER:-admin}"
 # Password conforme alla policy (>=12, maiusc+minusc+numero+speciale).
-ADMIN_PASS="$(openssl rand -base64 12 | tr -dc 'A-Za-z0-9' | cut -c1-14)Aa1!"
+ADMIN_PASS="${ADMIN_PASS:-$(openssl rand -base64 12 | tr -dc 'A-Za-z0-9' | cut -c1-14)Aa1!}"
 ADMIN_OK=0
 if [ "$HEALTH" = "200" ]; then
   # Flusso register-then-promote (vedi INSTALL.md): CSRF = cookie XSRF-TOKEN su
