@@ -53,14 +53,9 @@ log:
   level: "info"
   file: null
 
-email:
-  # SMTP per le notifiche opzionali (Settings → Notifiche: alert critical,
-  # riepilogo settimanale). Non generabile automaticamente da install.sh —
-  # vanno inseriti a mano dopo l'installazione, poi:
-  # sudo systemctl restart sentinelcore
-  smtp_server: "smtp.gmail.com"
-  smtp_username: ""
-  smtp_password: ""
+# SMTP per le notifiche email (alert critical, riepilogo settimanale) non e'
+# piu' qui: si configura da Settings → SMTP dopo l'installazione, senza
+# restart e con un pulsante "Testa connessione" che invia una email reale.
 
 notifications:
   # Bot Telegram condiviso dall'istanza per gli alert critical sul canale

@@ -203,9 +203,9 @@ cat <<EOF
                in production.yaml, rigenera il certificato TLS (vedi
                packaging/HTTPS.md) e: sudo systemctl restart sentinelcore
    Nota Email: le notifiche opzionali (alert critical, riepilogo
-               settimanale) richiedono credenziali SMTP reali in
-               production.yaml (sezione email:, vuota di default) e un
-               restart del servizio.
+               settimanale) richiedono credenziali SMTP reali,
+               configurabili da Settings → SMTP (admin) — nessun
+               restart necessario, pulsante "Testa connessione" incluso.
    Nota Bot:   l'alert critical sul canale Telegram di un team richiede
                notifications.telegram_bot_token in production.yaml
                (vuoto di default) — lo Slack webhook invece è per-team
