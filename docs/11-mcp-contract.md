@@ -6,7 +6,7 @@ Dognet Technologies product suite: **SentinelCore**, **FireDog**, and
 **one mental model** — same transport, same auth shape, same tool naming and
 response envelope — while each product keeps its own domain-specific tools.
 
-> Status: SentinelCore implements this contract (phase 1). FireDog and
+> Status: SentinelCore implements this contract (phase 1 + phase 2). FireDog and
 > CyberSheppard sections describe how they **must** implement it; their tool
 > catalogs are proposals until built. When code and this doc disagree, the code
 > wins.
@@ -71,6 +71,7 @@ protects the rest of the product's API.
 | Storage | API keys are hashed with **SHA-256** (never stored or re-shown in clear). MD5 or unsalted-weak hashes are not acceptable. |
 | Key format | Human-visible prefix so keys are identifiable in logs/UI. SentinelCore uses `sk_<48 alphanumerics>`. |
 | Lifecycle | Keys are per-user, listable, revocable, and support optional expiry. `last_used_at` is updated on use (best-effort). |
+| Scope (phase-2 guardrail) | A key carries its own `read`/`write` scope, independent of the owning user's role. Keys are `read` by default; only an **admin** may create a `write` key (self or, once an admin-provisioning flow exists, for a dedicated service account). Write tools reject any credential that isn't `Some("write")` — a JWT-cookie session (no key scope) or a `read` key both fail closed. SentinelCore implements this as `user_api_keys.scope` + `Claims.mcp_key_scope`. |
 | CSRF | The MCP endpoint is exempt from CSRF. This is safe **only because** access is Bearer-only; it MUST NOT rely on an ambient session cookie. |
 | Transport security | The endpoint MUST be served over TLS in production. |
 
@@ -151,7 +152,7 @@ them as a tool outcome, not a transport fault.
 | Phase | Scope | Status |
 |---|---|---|
 | **Phase 1** | Read-only: `list_*`, `get_*`, `search_*`, `*_summary` | SentinelCore: done. FireDog / CyberSheppard: pending. |
-| **Phase 2** | Write / actions, gated by per-action RBAC scope | Not started (all products). |
+| **Phase 2** | Write / actions, gated by per-action RBAC scope | SentinelCore: done. FireDog / CyberSheppard: pending. |
 
 A product MAY ship phase 1 before phase 2. Read tools MUST remain read-only
 after phase 2 lands.
@@ -175,11 +176,21 @@ feed the risk engine.
 
 Visibility in phase 1 mirrors the web API (the `list_vulnerabilities` REST
 endpoint is not server-side scope-filtered; see [05 — Roles &
-Permissions](05-roles-and-permissions.md)). Phase-2 write tools will enforce
-per-vulnerability scope (`vuln → asset → assigned_team`).
+Permissions](05-roles-and-permissions.md)).
 
-**Phase-2 candidates:** `assign_vulnerability`, `accept_risk`,
-`update_remediation_status`, `trigger_scan`.
+**Phase 2 (implemented)** — each write tool calls its REST handler directly
+(same axum extractors constructed in-process) so authorization is bit-for-bit
+identical to the web API, not a reimplementation:
+
+| Tool | Maps to (REST) | Authorization |
+|---|---|---|
+| `update_vulnerability_status` | `PUT /api/vulnerabilities/:id` (status/remediation only) | admin: always. Assigned user: only their own vulnerability, status+remediation only. Anyone else: rejected. |
+| `assign_vulnerability` | `PUT /api/vulnerabilities/:id` (assigned_team_id/assigned_user_id only) | admin only (the handler rejects these fields from a non-admin, including the assignee). |
+| `accept_risk` | `POST /api/risk-acceptance` | admin only — enforced explicitly inside the tool, because the REST route's admin check lives in route-level middleware that MCP dispatch doesn't traverse. |
+| `trigger_scan` | `POST /api/network/scan` | any authenticated identity (REST endpoint itself has no role check). |
+
+All four additionally require the calling API key's own scope to be
+`write` (see §3) — a guardrail independent of the impersonated user's role.
 
 ### 7.2 FireDog — firewall management (proposed, to build)
 
