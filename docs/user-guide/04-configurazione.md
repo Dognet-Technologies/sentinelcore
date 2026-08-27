@@ -8,13 +8,28 @@ Scelta del tema grafico dell'interfaccia (chiaro/scuro e varianti). È una prefe
 
 ## Notifiche
 
-Interruttori generali per il canale email delle notifiche personali:
+Il canale **in-app** (la campanella in alto) è sempre attivo, indipendentemente da tutto quello che segue. Questa pagina decide invece **cosa** ti arriva anche via **email e Slack personale** (il webhook impostato in Profilo) — perché queste email/Slack arrivino davvero, un amministratore deve aver configurato un server SMTP funzionante (sezione successiva) e/o tu stesso un webhook Slack in Profilo.
+
+**Interruttori generali**:
 
 - **Email** — interruttore generale del canale email;
 - **Avviso vulnerabilità critical** — invia un'email quando viene scoperta una vulnerabilità critical assegnata al tuo team;
 - **Report settimanale** — invia un'email di riepilogo settimanale delle vulnerabilità.
 
-Il canale in-app (la campanella in alto) è sempre attivo, indipendentemente da queste opzioni. Perché queste email arrivino davvero, un amministratore deve prima aver configurato un server SMTP funzionante (vedi sezione successiva).
+**Eventi personali** (visibili a tutti i ruoli — riguardano il lavoro assegnato a te o al tuo team):
+
+- Ti viene assegnata una vulnerabilità (a te direttamente o al tuo team);
+- Il tuo team riceve un nuovo piano di remediation.
+
+**Eventi operativi** (visibili solo a Team Leader e Amministratore — riguardano la gestione del team/dell'istanza, non solo il tuo lavoro):
+
+- Un utente cambia lo stato di una vulnerabilità (presa in carico, risolta, chiusa);
+- Viene creata una nuova vulnerabilità (manualmente o da un import scanner — in questo caso ricevi un riepilogo del batch, non un'email per ogni riga importata);
+- Viene scoperto un nuovo host dal Network Discovery;
+- Una scansione di rete **periodica** (quella pianificata in Impostazioni → Network Discovery, non gli avvii manuali) è completata;
+- Uno o più host risultano offline in una scansione.
+
+Ognuna di queste preferenze è indipendente dalle altre: puoi ad esempio ricevere email sulle vulnerabilità assegnate ma non sui report settimanali, o viceversa.
 
 ## SMTP (solo Amministratore)
 
