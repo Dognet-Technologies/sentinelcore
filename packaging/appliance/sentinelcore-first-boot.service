@@ -1,0 +1,26 @@
+[Unit]
+Description=SentinelCore – rigenerazione segreti al primo avvio
+Documentation=file:///opt/sentinelsuite/sentinelcore/app/first-boot.sh
+After=postgresql.service
+Wants=postgresql.service
+# NIENTE `Before=sentinelcore.service` qui: first-boot.sh chiama al suo
+# interno `systemctl restart sentinelcore` (step 6/8) per applicare i
+# segreti appena rigenerati. Se questa unit fosse ordinata PRIMA di
+# sentinelcore.service, quella restart sincrona e il vincolo d'ordine si
+# bloccherebbero a vicenda (systemd non puo' far partire sentinelcore
+# finche' first-boot non e' "completata", ma first-boot non completa
+# finche' la restart non ritorna) — deadlock che fa fallire l'unit al
+# TimeoutStartSec. Lasciando le due unit indipendenti, sentinelcore parte
+# in parallelo con le credenziali vecchie (ancora valide in quel momento)
+# e viene poi riavviata da first-boot con quelle nuove — nessun ciclo.
+
+[Service]
+Type=oneshot
+ExecStart=/opt/sentinelsuite/sentinelcore/app/first-boot.sh
+RemainAfterExit=no
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
