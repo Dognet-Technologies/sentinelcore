@@ -23,6 +23,13 @@
 # schema resta quello nuovo — il backup pg_dump è per un ripristino manuale.
 set -euo pipefail
 
+# Forza una locale sempre presente: pg_dump/psql su Debian sono wrapper Perl
+# (postgresql-common/pg_wrapper) che stampano "perl: warning: Setting locale
+# failed" per OGNI invocazione se il client SSH inoltra LC_* (es. it_IT.UTF-8)
+# non generate sull'host target — innocuo ma seppellisce l'output reale sotto
+# decine di righe di rumore identico.
+export LC_ALL=C.UTF-8 LANGUAGE=C.UTF-8
+
 [ "$(id -u)" -eq 0 ] || { echo "Esegui come root (sudo ./upgrade.sh)"; exit 1; }
 
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

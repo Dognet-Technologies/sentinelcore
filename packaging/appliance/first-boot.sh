@@ -18,15 +18,15 @@ echo "=== first-boot $(date '+%Y-%m-%d %H:%M:%S') ==="
 
 # ── 1. Rigenera SSH host keys se rimosse durante build ──────────────────────
 if ! ls /etc/ssh/ssh_host_*_key 2>/dev/null | grep -q .; then
-    echo "[1/7] Rigenerazione SSH host keys..."
+    echo "[1/8] Rigenerazione SSH host keys..."
     ssh-keygen -A 2>/dev/null || dpkg-reconfigure openssh-server 2>/dev/null || true
     systemctl restart ssh 2>/dev/null || true
 else
-    echo "[1/7] SSH host keys presenti — skip"
+    echo "[1/8] SSH host keys presenti — skip"
 fi
 
 # ── 2. Estrai DB password corrente da production.yaml ───────────────────────
-echo "[2/7] Lettura config..."
+echo "[2/8] Lettura config..."
 # URL formato: postgresql://vlnman:<password>@127.0.0.1:5432/vulnerability_manager
 CURRENT_DB_PASS="$(grep -oP 'postgresql://[^:]+:\K[^@]+' "$CONFIG" 2>/dev/null || true)"
 if [ -z "$CURRENT_DB_PASS" ]; then
@@ -35,7 +35,7 @@ if [ -z "$CURRENT_DB_PASS" ]; then
 fi
 
 # ── 3. Genera nuovi segreti ──────────────────────────────────────────────────
-echo "[3/7] Generazione nuovi segreti..."
+echo "[3/8] Generazione nuovi segreti..."
 NEW_DB_PASS="$(openssl rand -hex 24)"
 NEW_JWT="$(openssl rand -hex 32)"
 # Credenziali web fisse per il primo accesso
@@ -45,19 +45,19 @@ ADMIN_PASS="Admin2026!!"
 ROOT_PASS="SentinelCore1st!"
 
 # ── 4. Aggiorna production.yaml ──────────────────────────────────────────────
-echo "[4/7] Aggiornamento config..."
+echo "[4/8] Aggiornamento config..."
 sed -i \
     -e "s|postgresql://$DB_USER:[^@]*@|postgresql://$DB_USER:$NEW_DB_PASS@|" \
     -e "s|secret_key: \"[^\"]*\"|secret_key: \"$NEW_JWT\"|" \
     "$CONFIG"
 
 # ── 5. Aggiorna password utente PostgreSQL ───────────────────────────────────
-echo "[5/7] Aggiornamento credenziali DB..."
+echo "[5/8] Aggiornamento credenziali DB..."
 sudo -u postgres psql -v ON_ERROR_STOP=1 \
     -c "ALTER ROLE $DB_USER PASSWORD '$NEW_DB_PASS';" >/dev/null
 
 # ── 6. Riavvia sentinelcore con la nuova config, ricrea admin ────────────────
-echo "[6/7] Riavvio backend e verifica admin..."
+echo "[6/8] Riavvio backend e verifica admin..."
 systemctl restart sentinelcore || true
 
 echo "    Attendo risposta backend (max 60s)..."
@@ -82,7 +82,7 @@ else
 fi
 
 # ── 7. Scrivi credenziali su /etc/motd ───────────────────────────────────────
-echo "[7/7] Credenziali iniziali → /etc/motd"
+echo "[7/8] Credenziali iniziali → /etc/motd"
 SERVER_IP="$(ip -4 route get 1.1.1.1 2>/dev/null \
     | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')" || SERVER_IP="<ip-vm>"
 
@@ -131,6 +131,15 @@ MOTD
 echo ""
 cat /etc/motd
 echo ""
+
+# ── 8. Forza il cambio password root al primo login ──────────────────────────
+# Va fatto QUI (a fine script), non in fase di build (provision.sh): prima
+# di questo punto il processo gira ancora come root e usa `sudo -u postgres`
+# allo step 5 — sudo rivalida l'account CHIAMANTE (root) via PAM anche se
+# sei gia' root, e una password gia' scaduta fa fallire chauthtok in modo
+# non interattivo, interrompendo tutto il first-boot a meta'.
+echo "[8/8] Forzo il cambio password di root al prossimo login..."
+chage -d 0 root
 
 # ── Disabilita questo servizio ───────────────────────────────────────────────
 systemctl disable sentinelcore-first-boot.service

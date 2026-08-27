@@ -79,11 +79,19 @@ systemctl enable systemd-resolved 2>/dev/null || true
 systemctl mask serial-getty@ttyS0.service
 
 # Password root di default, documentata (README/motd) — l'utente la
-# cambia al primo accesso: forzato da chage, non solo un auspicio nel
-# banner. NB: first-boot.sh NON la ruota (rigenera solo DB password/JWT),
-# resta questa finche' l'operatore non la cambia.
+# cambia al primo accesso. NB: first-boot.sh NON la ruota (rigenera solo
+# DB password/JWT), resta questa finche' l'operatore non la cambia.
+#
+# La scadenza forzata (chage -d 0) NON va impostata qui: first-boot.sh
+# gira come root e usa `sudo -u postgres` per ruotare la password del DB.
+# sudo rivalida sempre l'account CHIAMANTE (root) via PAM anche se sei
+# gia' root — se la trova scaduta, chauthtok fallisce non-interattivo
+# ("a password is required") e l'intero first-boot si interrompe a meta',
+# lasciando production.yaml con una password diversa da quella reale nel
+# ruolo Postgres → sentinelcore.service crash-loop permanente. La scadenza
+# viene quindi impostata da first-boot.sh stesso, come ultimo passo, dopo
+# che tutte le operazioni che richiedono sudo sono gia' concluse.
 echo 'root:SentinelCore1st!' | chpasswd
-chage -d 0 root
 # Abilita login root con password (necessario su Debian cloud image)
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config

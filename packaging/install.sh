@@ -10,6 +10,13 @@
 # (usa --force per riprovare, a tuo rischio: le migration verrebbero riapplicate).
 set -euo pipefail
 
+# Forza una locale sempre presente: pg_dump/psql su Debian sono wrapper Perl
+# (postgresql-common/pg_wrapper) che stampano "perl: warning: Setting locale
+# failed" per OGNI invocazione se il client SSH inoltra LC_* (es. it_IT.UTF-8)
+# non generate sull'host target — innocuo ma seppellisce l'output reale sotto
+# decine di righe di rumore identico (86 migration = 86 blocchi di warning).
+export LC_ALL=C.UTF-8 LANGUAGE=C.UTF-8
+
 # ── parametri ────────────────────────────────────────────────────────────────
 SERVER_NAME=""
 NET_IFACE=""
