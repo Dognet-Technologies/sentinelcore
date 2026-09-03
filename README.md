@@ -12,7 +12,7 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
-[![Version](https://img.shields.io/badge/version-1.0.1-success.svg)]()
+[![Version](https://img.shields.io/badge/version-1.2.0-success.svg)]()
 
 </div>
 
@@ -20,9 +20,14 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 ---
 
-## What v1.0.1 brings
+## What v1.2.0 brings
 
-The 1.0.1 release line ships a full **Network Topology restyle** plus a chain of operational improvements pulled from real deployment friction:
+The headline feature of the 1.1.0 → 1.2.0 line is a native **MCP (Model Context Protocol) server**, embedded directly in the backend — no external gateway, no translation layer. It shipped in two phases:
+
+- **Phase 1 (read-only)** — an AI agent can query vulnerabilities, risk summaries, and asset state over `POST /api/mcp` (JSON-RPC 2.0), authenticated with a scoped API key.
+- **Phase 2 (read/write) — shipped in 1.2.0** — the server now exposes **write tools**: assign a vulnerability, update its status, accept risk, trigger a scan. Every write tool is gated by a **per-key scope guardrail**, so an agent's API key can be restricted to exactly the actions it's allowed to take.
+
+Alongside MCP, this release line also brings a full **Network Topology restyle** and a chain of operational improvements pulled from real deployment friction:
 
 - **Hex/orb device nodes** with per-device-type colour and silhouette icons, link endpoint dots, subnet chips, and HUD overlays.
 - **Slide-in device preview panel** on icon click — the Overview content surfaces without a full navigation, with an "Apri dettaglio completo" button to go deeper.
@@ -31,9 +36,11 @@ The 1.0.1 release line ships a full **Network Topology restyle** plus a chain of
 - **Single source of truth for vuln counts** via `assets.network_device_id` — the network discovery pipeline and the scanner import pipeline now agree on the same device row.
 - **Network Ports tab** with aggregated open ports, detected services, and per-port vuln linkage.
 - **Configurable nmap discovery** in Settings: `scan_type`, timing template, port list, custom args — preview is a live nmap command string before save.
+- **Granular notification preferences** — per-channel, per-event opt-in/out instead of one global on/off switch.
 - **File logging system** with retention worker (7d / 500MB rotation, gzip in place), level and destination configurable from Settings.
 - **`sudo NOPASSWD` nmap wrapper** so the discovery worker can do `-sV -O -sU -p-` scans without running the whole service as root.
 - **CSRF middleware self-heal** so restarts don't 403 every in-flight browser session.
+- **VM appliance (qcow2 / OVA) first-boot fix** — the packaged appliance now boots reliably on first start.
 
 ## What it actually does
 
@@ -62,6 +69,13 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
 - Comment threads on vulnerabilities and remediation plans, with `@mention` notifications.
 - Multi-channel notification routing: email, Slack, Telegram, Microsoft Teams, generic webhook, PagerDuty, OpsGenie.
 - Throttling and quiet-hours to keep the channel signal-to-noise sane.
+
+### MCP server (read/write)
+
+- Native **Model Context Protocol** server embedded in the backend — single endpoint `POST /api/mcp`, JSON-RPC 2.0, no external gateway.
+- **Read tools**: `list_vulnerabilities`, `get_vulnerability`, `get_risk_summary`.
+- **Write tools**: `assign_vulnerability`, `update_vulnerability_status`, `accept_risk`, `trigger_scan` — each gated by a per-API-key scope guardrail.
+- Same contract shared across the Dognet Technologies suite (SentinelCore, FireDog, CyberSheppard) — see [docs/11-mcp-contract.md](docs/11-mcp-contract.md).
 
 ### Integrations
 
@@ -92,7 +106,7 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
                                                   ▼
                                      ┌──────────────────────────┐
                                      │   PostgreSQL 15+         │
-                                     │   117 migrations         │
+                                     │   91 migrations          │
                                      │   JSONB, triggers, GIN   │
                                      └──────────────────────────┘
                                                   ▲
@@ -100,15 +114,21 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
                                      ┌────────────┴─────────────┐
                                      │   Background workers     │
                                      │ ─────────────────────────│
+                                     │ assignment_scheduler     │
                                      │ auto_rescan              │
+                                     │ critical_alert           │
                                      │ device_metrics_snapshot  │
                                      │ epss_updater             │
                                      │ jira_sync                │
+                                     │ kev_updater              │
                                      │ log_retention            │
                                      │ notification_digest      │
                                      │ nvd_api                  │
+                                     │ openvas_poller           │
+                                     │ remediation_plan_progress│
                                      │ report_generator         │
                                      │ sla_checker              │
+                                     │ weekly_report            │
                                      └──────────────────────────┘
 ```
 
@@ -119,7 +139,7 @@ Rust 1.75+, Axum 0.6, sqlx 0.8 (offline cache committed in `.sqlx/`), tokio 1, j
 React 18, TypeScript 4.9, MUI 5, TanStack Query 5, Cytoscape (network topology), ECharts + Recharts (analytics), Framer Motion, three.js. Built with Create React App (`react-scripts`).
 
 **Database**
-PostgreSQL 15+, 117 migrations under `vulnerability-manager/migrations/`. Heavy use of `JSONB`, triggers (e.g. `network_devices.assigned_at`), and GIN indexes (e.g. team/user `skills`).
+PostgreSQL 15+, 91 migrations under `vulnerability-manager/migrations/`. Heavy use of `JSONB`, triggers (e.g. `network_devices.assigned_at`), and GIN indexes (e.g. team/user `skills`).
 
 ---
 
@@ -265,12 +285,13 @@ sentinelcore/
 │   ├── src/
 │   │   ├── api/                        # Route definitions (188 endpoints)
 │   │   ├── handlers/                   # Request handlers
+│   │   ├── mcp/                        # MCP server (JSON-RPC, read + write tools)
 │   │   ├── network/                    # Discovery scanner + topology
 │   │   ├── scanners/                   # 10 third-party importers
-│   │   ├── workers/                    # 12 background tokio workers
+│   │   ├── workers/                    # 15 background tokio workers
 │   │   ├── notifications/              # Email / Slack / Telegram
 │   │   └── middleware/                 # CSRF, RBAC, rate limit
-│   ├── migrations/                     # 76 SQL migrations
+│   ├── migrations/                     # 91 SQL migrations
 │   ├── .sqlx/                          # Committed compile-time query cache
 │   └── plugins/                        # First-party plugin examples
 │
@@ -408,6 +429,17 @@ If you spot something, please **don't** open a public issue. Email `security@dog
 
 ## Roadmap
 
+**Shipped in 1.2.0**
+
+- **MCP server phase 2**: write tools (`assign_vulnerability`, `update_vulnerability_status`, `accept_risk`, `trigger_scan`) with per-API-key scope guardrails.
+- Granular per-channel, per-event notification preferences.
+- VM appliance (qcow2 / OVA) first-boot fix.
+
+**Shipped in 1.1.0**
+
+- MCP server phase 1 (read-only): `list_vulnerabilities`, `get_vulnerability`, `get_risk_summary` over `POST /api/mcp`.
+- VM appliance builder (qcow2 + OVA packaging).
+
 **Shipped in 1.0.1**
 
 - Network Topology restyle on the SentinelCore Design System.
@@ -417,10 +449,11 @@ If you spot something, please **don't** open a public issue. Email `security@dog
 - Inline pencil-per-card editing on the device detail page.
 - CSRF middleware self-heal across restarts.
 
-**In flight on `develop/v1.0.1`**
+**In flight**
 
 - Phase C: skill-based auto-assignment with "add skill" alert in the assignment dialog.
 - Container scanning (Trivy / Grype) — importers already in tree, wiring up next.
+- MCP contract rollout to FireDog and CyberSheppard (contract defined in [docs/11-mcp-contract.md](docs/11-mcp-contract.md), implementation in progress on each product).
 
 **Considered, not committed**
 
@@ -447,7 +480,7 @@ Pull requests and issues are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) be
 
 Two things that will save us all time:
 
-1. Branch off `develop/v1.0.1`, not `main`. `main` only takes curated merges.
+1. Branch off `develop/v1.2.0`, not `main`. `main` only takes curated merges.
 2. If you touch a sqlx query, commit the regenerated `.sqlx/` cache in the same PR.
 
 ---
