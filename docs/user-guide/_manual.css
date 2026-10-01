@@ -15,7 +15,17 @@ body {
 
 .cover {
   page-break-after: always;
-  padding: 100mm 6mm 0 6mm;
+  padding: 55mm 6mm 0 6mm;
+  min-height: 247mm;
+  display: flex;
+  flex-direction: column;
+}
+
+.cover-logo {
+  align-self: flex-start;
+  height: 20mm;
+  width: auto;
+  margin-bottom: 22mm;
 }
 
 .cover .eyebrow {
@@ -50,6 +60,14 @@ body {
 }
 
 .cover .meta strong { color: #1a2233; }
+
+.cover-legal {
+  margin-top: auto;
+  padding-top: 8mm;
+  font-size: 9pt;
+  line-height: 1.7;
+  color: #8792a6;
+}
 
 .cover h1 {
   page-break-before: avoid;
