@@ -307,17 +307,16 @@ Boot-time validation (with `APP_ENV=production`): the JWT secret must be ≥ 32 
 
 Discovery shells out to `nmap` and `arp-scan`. When the service does not run as root, every invocation is prefixed with **`sudo -n`** (non-interactive). Two supported setups — pick **one**:
 
-### Option A — sudoers (recommended, matches the code's default path)
+### Option A — sudoers + scan wrapper (recommended, matches the code's default path)
+
+The sudoers rule authorizes a single root-owned wrapper (`/usr/local/libexec/sentinelcore/scan`), **not** `nmap`/`arp-scan` themselves. The wrapper only accepts an allowlist of scan options (no input/output files, no NSE scripts, no data dirs) and validated targets after `--`, so a crafted request can never turn into arbitrary root file access. The release package ships it; install it with the bundled script:
 
 ```bash
-sudo tee /etc/sudoers.d/sentinelcore-discovery >/dev/null <<'EOF'
-# SentinelCore network discovery: allow the service user to run the two
-# scan binaries as root without password. Keep this list minimal.
-sentinelcore ALL=(root) NOPASSWD: /usr/bin/nmap, /usr/sbin/arp-scan
-EOF
-sudo chmod 440 /etc/sudoers.d/sentinelcore-discovery
+sudo bash templates/install-scan-privileges.sh sentinelcore templates/sentinelcore-scan
 sudo visudo -c   # syntax check
 ```
+
+It writes `/etc/sudoers.d/sentinelcore-scan` (`sentinelcore ALL=(root) NOPASSWD: /usr/local/libexec/sentinelcore/scan`). If you followed an older version of this guide and have `/etc/sudoers.d/sentinelcore-discovery` granting `nmap`/`arp-scan` directly, **remove it** — otherwise it stays active next to the wrapper.
 
 With this option the systemd unit **must not** set `NoNewPrivileges=true` (it would silently break `sudo`).
 
