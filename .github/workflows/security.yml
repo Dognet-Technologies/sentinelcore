@@ -66,6 +66,8 @@ jobs:
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@150fca883cd4034361b621bd4e6a9d34e5143606 # v1
         with:
+          # La cache integrata usa Swatinem/rust-cache con uno SHA non ammesso dalla policy del repo.
+          cache: false
           toolchain: stable
 
       - name: Install cargo-audit
