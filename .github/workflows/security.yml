@@ -64,10 +64,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@150fca883cd4034361b621bd4e6a9d34e5143606 # v1
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
-          # La cache integrata usa Swatinem/rust-cache con uno SHA non ammesso dalla policy del repo.
-          cache: false
           toolchain: stable
 
       - name: Install cargo-audit
