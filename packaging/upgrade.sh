@@ -117,6 +117,13 @@ if [ -f "$PKG_DIR/templates/sentinelcore.service" ]; then
   install -m 0644 "$PKG_DIR/templates/sentinelcore.service" /etc/systemd/system/sentinelcore.service
   systemctl daemon-reload
 fi
+# Wrapper privilegiato per nmap/arp-scan + sudoers che autorizza solo lui.
+# Un fallimento qui NON blocca l'upgrade: senza wrapper il backend usa la
+# vecchia regola `sudo -n nmap` (protetta dalla validazione applicativa).
+if [ -f "$PKG_DIR/templates/sentinelcore-scan" ]; then
+  bash "$PKG_DIR/templates/install-scan-privileges.sh" "$SVC_USER" "$PKG_DIR/templates/sentinelcore-scan" \
+    || echo "⚠️  wrapper di scansione non installato: resta la regola sudoers precedente."
+fi
 # Certificato TLS self-signed: introdotto DOPO la prima ondata di appliance
 # (HTTPS di default) — un'istanza aggiornata da una versione precedente non
 # ce l'ha ancora. Lo generiamo se manca, cosi' la nginx conf nuova (che lo

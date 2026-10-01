@@ -147,9 +147,9 @@ install -m 0644 "$PKG_DIR/templates/sentinelcore.service" /etc/systemd/system/se
 install -m 0644 "$PKG_DIR/templates/nginx-sentinelcore.conf" /etc/nginx/sites-available/sentinelcore
 ln -sf /etc/nginx/sites-available/sentinelcore /etc/nginx/sites-enabled/sentinelcore
 rm -f /etc/nginx/sites-enabled/default
-# discovery: nmap/arp-scan via sudo NOPASSWD per l'utente di servizio
-echo "$SVC_USER ALL=(root) NOPASSWD: /usr/bin/nmap, /usr/sbin/arp-scan" > /etc/sudoers.d/sentinelcore-scan
-chmod 440 /etc/sudoers.d/sentinelcore-scan
+# discovery: nmap/arp-scan passano da un wrapper root-only con allowlist di
+# opzioni; il sudoers NOPASSWD autorizza solo il wrapper, non i binari.
+bash "$PKG_DIR/templates/install-scan-privileges.sh" "$SVC_USER" "$PKG_DIR/templates/sentinelcore-scan"
 nginx -t >/dev/null 2>&1 && systemctl reload nginx
 systemctl daemon-reload
 systemctl enable --now sentinelcore >/dev/null 2>&1
