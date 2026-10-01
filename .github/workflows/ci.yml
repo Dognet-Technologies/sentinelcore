@@ -125,7 +125,13 @@ jobs:
         working-directory: vulnerability-manager-frontend
         env:
           CI: "true"
-        run: npm test -- --watchAll=false --passWithNoTests
+        # Solo test unitari: apiIntegration/contextValidation/dataConsistency
+        # chiamano un backend acceso su 127.0.0.1 (si lanciano a mano con
+        # `npm run test:integration` ecc.) e runDataValidation.ts e' uno script.
+        run: >-
+          npm test -- --watchAll=false --passWithNoTests
+          --testPathIgnorePatterns="apiIntegration|contextValidation|dataConsistency|runDataValidation"
+
 
       - name: Basic smoke check
         run: |
