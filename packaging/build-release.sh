@@ -49,10 +49,18 @@ echo "$VERSION" > "$STAGE/VERSION"
 echo "▶ Tarball + checksum + firma"
 ( cd "$OUT" && tar czf "$NAME.tar.gz" "$NAME" )
 ( cd "$OUT" && sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256" )
-# Firma GPG (richiede la chiave sul build host). Non-fatale se assente.
-if gpg --list-secret-keys >/dev/null 2>&1; then
-  ( cd "$OUT" && gpg --armor --detach-sign --output "$NAME.tar.gz.asc" "$NAME.tar.gz" ) \
+# Firma GPG (richiede la chiave sul build host). Non-fatale se assente, salvo
+# REQUIRE_SIGNATURE=1 (usato dalla CI: una release non firmata deve fallire).
+# Se GPG_PASSPHRASE e' impostata la firma e' non interattiva (CI).
+# (valutazione in $(...) e non `| grep -q`: con pipefail grep che esce subito puo' dare SIGPIPE a gpg)
+if [ -n "$(gpg --list-secret-keys --with-colons 2>/dev/null | awk -F: '$1=="sec"{print "y"}')" ]; then
+  GPG_ARGS=(--armor --detach-sign)
+  [ -n "${GPG_PASSPHRASE:-}" ] && GPG_ARGS+=(--batch --yes --pinentry-mode loopback --passphrase-fd 3)
+  ( cd "$OUT" && gpg "${GPG_ARGS[@]}" --output "$NAME.tar.gz.asc" "$NAME.tar.gz" 3<<<"${GPG_PASSPHRASE:-}" ) \
     && echo "  firma: $NAME.tar.gz.asc"
+elif [ "${REQUIRE_SIGNATURE:-0}" = "1" ]; then
+  echo "ERRORE: REQUIRE_SIGNATURE=1 ma nessuna chiave GPG disponibile" >&2
+  exit 1
 else
   echo "  (nessuna chiave GPG sul build host: firma saltata)"
 fi
