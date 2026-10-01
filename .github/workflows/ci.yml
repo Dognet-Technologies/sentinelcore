@@ -35,7 +35,7 @@ jobs:
       - name: Install system deps (Debian)
         run: |
           apt-get update
-          apt-get install -y build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git ruby ruby-dev gcc make
+          apt-get install -y build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git ruby ruby-dev gcc make postgresql-client
 
       - name: Set HOME for container
         run: echo "HOME=/root" >> $GITHUB_ENV
@@ -75,6 +75,15 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
         run: |
           echo "DATABASE_URL=${DATABASE_URL}" >> $GITHUB_ENV
+
+      # In produzione l'app gira come `vlnman` e alcune migration (es. 115) gli
+      # assegnano la proprieta' delle tabelle: il ruolo deve esistere gia'.
+      # Le migration gia' applicate non si toccano (cambierebbe il checksum di
+      # sqlx e romperebbe gli aggiornamenti): e' l'ambiente di CI che si adegua.
+      - name: Create application DB role
+        env:
+          PGPASSWORD: postgres
+        run: psql -h postgres -U postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE vlnman LOGIN PASSWORD 'ci-only'"
 
       - name: Run DB migrations
         working-directory: vulnerability-manager
