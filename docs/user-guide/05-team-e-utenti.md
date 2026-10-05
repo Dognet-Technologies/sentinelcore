@@ -4,7 +4,7 @@
 
 La pagina **Team** (visibile a Team Leader e Amministratore) elenca i team esistenti. Per ciascun team puoi configurare:
 
-- **Nome e descrizione**
+- **Nome, descrizione e avatar** — ogni team può avere un'immagine scelta tra gli avatar predefiniti per i gruppi, così si riconosce a colpo d'occhio nelle liste e nelle schede
 - **Competenze (skill)** — l'elenco di competenze del team, usato dal motore di assegnazione automatica per abbinare le vulnerabilità al team più adatto
 - **Contatti e integrazioni**:
   - email di contatto del team;
@@ -18,6 +18,8 @@ La pagina **Utenti** (visibile a Team Leader e Amministratore) mostra l'elenco d
 
 - Un **Amministratore** può creare nuovi account, cambiarne username e ruolo, e (a seconda della configurazione dell'istanza) sbloccare account bloccati per troppi tentativi di login falliti.
 - Un **Team Leader** può modificare email, password e competenze dei membri del **proprio** team, ma non cambiarne username o ruolo di piattaforma — quelle operazioni restano riservate all'Amministratore.
+
+Passando il mouse sul nome di un utente o di un team (in elenchi, assegnazioni, menzioni) compare una piccola scheda con le informazioni principali, senza dover aprire la pagina dedicata. Il ruolo, il team e i contatti di un team sono visibili a tutti gli utenti autenticati: servono a sapere a chi rivolgersi e a poter assegnare o menzionare le persone giuste.
 
 Quando un amministratore o team leader imposta una password temporanea per un altro utente, all'account viene marcato l'obbligo di cambiarla al primo accesso successivo.
 

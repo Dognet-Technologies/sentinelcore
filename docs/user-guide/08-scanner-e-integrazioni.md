@@ -36,7 +36,7 @@ Le **regole di notifica** (accessibili dalla relativa voce di menu, gestite da u
 - se l'invio è immediato o raggruppato, con un intervallo minimo tra due notifiche simili (throttling) per evitare di sommergere le persone di messaggi;
 - eventuali "orari di silenzio" in cui non inviare notifiche non urgenti.
 
-Perché email/Slack/Telegram funzionino davvero servono, rispettivamente: un server SMTP configurato (capitolo 4), un webhook Slack (personale in Profilo, o di team nella pagina Team — entrambi testabili con un pulsante dedicato prima di fidarsene), e un bot Telegram configurato dall'amministratore per l'istanza.
+Perché email/Slack/Telegram funzionino davvero servono, rispettivamente: un server SMTP configurato (capitolo 4), un webhook Slack (personale in Profilo, o di team nella pagina Team — entrambi testabili con un pulsante dedicato prima di fidarsene; l'indirizzo viene controllato e deve essere un vero *Incoming Webhook* di Slack, `https://hooks.slack.com/…`), e un bot Telegram configurato dall'amministratore per l'istanza.
 
 ## Webhook SOAR in uscita (uso avanzato)
 

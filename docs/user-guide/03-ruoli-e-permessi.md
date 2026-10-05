@@ -12,12 +12,12 @@ Controllo completo della piattaforma. Oltre a tutto ciò che possono fare Team L
 - definire le regole di assegnazione automatica e la politica generale (automatica/manuale);
 - definire le regole di notifica e i canali di invio;
 - importare file da scanner esterni;
-- gestire i piani di remediation;
+- eliminare i piani di remediation (creare e modificare è consentito anche al Team Leader);
 - gestire il ciclo di vita dell'accettazione del rischio (risk acceptance: approvare, rifiutare, rinnovare);
 - registrare e verificare le risoluzioni;
 - gestire i plugin (inclusa la configurazione del connettore OpenVAS);
 - configurare l'integrazione JIRA e i webhook SOAR;
-- accedere al log di audit;
+- accedere al log di audit completo (come il Team Leader);
 - modificare tutte le **Impostazioni** di sistema (rete, sicurezza, notifiche, MCP, ecc.);
 - creare chiavi API con permessi di **scrittura** per il server MCP (vedi capitolo 4).
 
@@ -26,6 +26,8 @@ Controllo completo della piattaforma. Oltre a tutto ciò che possono fare Team L
 Un coordinatore con visibilità e alcune capacità di gestione più ampie di un Utente semplice, ma senza i poteri di sistema di un Amministratore:
 
 - vede e naviga le sezioni **Piani di remediation**, **Import scanner** e **Report**, non visibili a un Utente semplice;
+- **crea e modifica i piani di remediation**, comprese le liste di host dei piani in bozza (l'eliminazione resta all'Amministratore);
+- vede il **log di audit completo** di tutti gli utenti;
 - vede e naviga **Team** e **Utenti** — in particolare può modificare email, password e competenze (skill) dei membri del **proprio** team;
 - per il resto ha le stesse capacità di un Utente (vedi sotto).
 
@@ -41,6 +43,8 @@ Un Utente può:
 - generare, scaricare e ricevere via email i report a cui ha accesso;
 - gestire il proprio profilo, il 2FA, le proprie chiavi API e le proprie sessioni attive;
 - consultare il proprio carico di lavoro, le proprie statistiche di risoluzione e le classifiche.
+
+Dell'audit log un Utente vede **solo le proprie azioni** (login, modifiche), mai quelle degli altri account. La **timeline** di una vulnerabilità, invece, è leggibile da ogni utente autenticato.
 
 Un Utente **non** può creare/modificare/eliminare vulnerabilità o asset, assegnare lavoro ad altri, gestire team o utenti, importare scanner, o accedere alle Impostazioni di sistema.
 
@@ -58,9 +62,11 @@ Un Utente **non** può creare/modificare/eliminare vulnerabilità o asset, asseg
 | Creare/eliminare team, gestire regole di assegnazione | ❌ | ❌ | ✅ |
 | Gestire utenti (creazione, blocco, ruoli) | ❌ | ❌ | ✅ |
 | Importare file da scanner esterni | ❌ | ❌ | ✅ |
-| Gestire piani di remediation, risk acceptance | ❌ | ❌ | ✅ |
+| Creare e modificare piani di remediation | ❌ | ✅ | ✅ |
+| Eliminare piani di remediation, gestire risk acceptance | ❌ | ❌ | ✅ |
 | Gestire plugin, connettore OpenVAS, JIRA, webhook SOAR | ❌ | ❌ | ✅ |
-| Accedere al log di audit e alle Impostazioni di sistema | ❌ | ❌ | ✅ |
+| Log di audit | Solo le proprie azioni | Completo | Completo |
+| Impostazioni di sistema | ❌ | ❌ | ✅ |
 
 ## Ruolo all'interno di un team
 

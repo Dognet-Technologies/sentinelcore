@@ -21,20 +21,34 @@ Questo manuale è pensato per due tipi di lettori:
 
 Non è richiesta alcuna conoscenza di programmazione: SentinelCore si installa da pacchetti pronti e si usa interamente da interfaccia web.
 
+## Novità della versione 1.3.0
+
+Rispetto alla 1.2.0, la 1.3.0 porta soprattutto questi cambiamenti (i dettagli sono nei capitoli indicati):
+
+- **Mappa di rete rinnovata** — selezione a riquadro, spostamento di gruppi di host, zoom e scorrimento, linee personalizzabili (forma, colore, TAG, animazione), collegamenti scoperti dagli scanner animati, sottoreti raccolte in riquadri comprimibili, viste gerarchica e circolare raggruppate per sottorete (capitolo 7).
+- **Dashboard interattiva** — ogni colonna del grafico "Vulnerability Trend" apre il dettaglio di quel giorno, con grafico per severity e collegamenti a vulnerabilità e host (capitolo 6).
+- **Punteggio di rischio più chiaro sugli host** — la scheda "Input del risk score" mostra solo i dati che entrano davvero nel calcolo, con i punti che ciascuno porta; i campi doppi sono stati unificati (capitolo 7).
+- **Piani di remediation più semplici** — scelta degli host con ricerca, possibilità di toglierli, aggiunta di host e vulnerabilità a un piano in bozza dal tasto destro, chiusura automatica immediata del piano (capitolo 9).
+- **Commenti più ricchi** — risposte a qualsiasi livello e autocompletamento delle menzioni `@utente` (capitolo 6).
+- **Aggiornamento in tempo reale** — liste, notifiche e dashboard si aggiornano da sole, senza ricaricare la pagina.
+- **Sicurezza** — revoca delle sessioni, limite ai tentativi di accesso, codici 2FA non riutilizzabili, scansioni di rete eseguite da un componente privilegiato con elenco di opzioni consentite (capitolo 4).
+- **Temi con contrasto verificato** — tutti gli 11 temi rispettano i livelli di leggibilità WCAG AA per testi e colori di gravità (capitolo 4).
+- **Release firmate** — i pacchetti e le immagini VM sono accompagnati da checksum e firma verificabili (capitolo 1).
+
 ## Cosa fa SentinelCore
 
-- **Network Discovery** — scansione di rete integrata (basata su nmap) con profili configurabili, pianificazione ricorrente e mappa di topologia degli host scoperti.
+- **Network Discovery** — scansione di rete integrata (basata su nmap) con profili configurabili, pianificazione ricorrente e mappa di topologia interattiva degli host scoperti.
 - **Importazione da scanner esterni** — legge i risultati di 10 scanner di terze parti (Qualys, Nessus, Burp Suite, OpenVAS/GVM, Nexpose/InsightVM, OWASP ZAP, Nmap, Nikto, Trivy, Grype), normalizza la severità, deduplica i risultati e li collega agli asset.
 - **Connettore OpenVAS diretto** — un connettore integrato interroga periodicamente un'istanza GVM/OpenVAS e importa automaticamente i report completati, senza bisogno di esportare file a mano.
 - **Punteggio di rischio** — un punteggio composito 0–100 che combina CVSS, probabilità di sfruttamento reale (EPSS), impatto di business, esposizione dell'asset e disponibilità di exploit noti, con override automatici per zero-day, CVE sfruttate da ransomware e vulnerabilità attivamente sfruttate (catalogo CISA KEV).
 - **SLA e scadenze** — ogni livello di rischio ha una scadenza di rimedio (Critical 1 giorno, High 7 giorni, Medium 30 giorni, Low 90 giorni); il sistema segnala automaticamente gli sforamenti.
 - **Assegnazione** — manuale (a team o utente) oppure automatica tramite regole basate su competenze (skill) e bilanciamento del carico.
-- **Piani di remediation** — raggruppano vulnerabilità e dispositivi in piani eseguibili, con stato di avanzamento, commenti e verifica finale.
-- **Collaborazione** — commenti con menzioni (`@utente`), notifiche in-app, classifiche di risoluzione per utenti e team.
+- **Piani di remediation** — raggruppano gli host (e quindi le loro vulnerabilità) in piani eseguibili, con stato di avanzamento calcolato sulle vulnerabilità realmente risolte, chiusura automatica al 100%, commenti e verifica finale.
+- **Collaborazione** — commenti a thread con menzioni (`@utente`, con autocompletamento), notifiche in-app, classifiche di risoluzione per utenti e team. Le liste e le notifiche si aggiornano in tempo reale.
 - **Notifiche** — motore di regole (condizioni, priorità, throttling, orari di silenzio) che invia avvisi via email, Slack e Telegram.
 - **Integrazioni** — sincronizzazione bidirezionale con JIRA, arricchimento CVE da NVD, aggiornamento giornaliero EPSS, webhook SOAR in uscita.
 - **Reportistica** — report di vulnerabilità (PDF/CSV/JSON/XML), report di gestione, dashboard esecutiva, mappe di calore tecniche.
-- **Sicurezza e audit** — autenticazione con cookie httpOnly, protezione CSRF, autenticazione a due fattori (TOTP), gestione sessioni con revoca da remoto, log di audit completo, permessi granulari per utente.
+- **Sicurezza e audit** — autenticazione con cookie httpOnly, protezione CSRF, autenticazione a due fattori (TOTP) con codici non riutilizzabili, limite ai tentativi di accesso, gestione sessioni con revoca da remoto, log di audit (completo per Amministratori e Team Leader, personale per gli Utenti), permessi granulari per utente.
 - **Server MCP** — un'interfaccia programmatica (Model Context Protocol) che permette ad agenti AI autorizzati di consultare e, se abilitato, agire su vulnerabilità e rischio — vedi il capitolo dedicato alla configurazione.
 
 ## Cosa NON fa (per evitare aspettative sbagliate)

@@ -26,3 +26,24 @@ Sono visibili solo a Team Leader e Amministratore. Se il tuo ruolo è "Utente", 
 
 **Dopo un aggiornamento il servizio non riparte.**
 Lo script di aggiornamento esegue da solo un controllo di salute e, se le migrazioni del database falliscono, ripristina automaticamente la versione precedente. Se invece le migrazioni sono andate a buon fine ma il servizio non risponde comunque, consulta i log (`journalctl -u sentinelcore -n 100`) e, in caso di dubbio, usa il backup del database creato automaticamente prima dell'aggiornamento (si trova in `/opt/sentinelsuite/sentinelcore/backups/`).
+
+**Ho risolto tutte le vulnerabilità di un piano ma lo stato è ancora "Attivo".**
+Dalla 1.3.0 il piano passa a *Completato* da solo, nello stesso istante in cui l'ultima vulnerabilità viene risolta o chiusa. Se non succede, verifica che il piano non sia in **bozza** (le bozze non si chiudono da sole), che contenga almeno un host con vulnerabilità collegate, e che nessuna vulnerabilità dei suoi host sia ancora aperta o in lavorazione (la colonna *Progress* lo mostra). Se la lista che hai aperto non è aggiornata, ricarica la pagina; di norma si aggiorna da sola.
+
+**Aggiungendo vulnerabilità a un piano in bozza, il messaggio dice "senza dispositivo di rete".**
+Un piano contiene dispositivi di rete, non singole vulnerabilità: una vulnerabilità o un asset inseriti a mano e mai collegati a un dispositivo scoperto dalla rete (o importato) non possono stare in un piano. Esegui una scansione di rete che scopra l'host, oppure verifica nel dettaglio dell'host che sia collegato a un dispositivo.
+
+**Non riesco a togliere o aggiungere host a un piano.**
+Gli host si cambiano solo finché il piano è in **bozza** e solo da Team Leader e Amministratori. Per un piano già Attivo, riportalo allo stato Bozza dal menu *Cambia stato* se devi modificarne gli host.
+
+**Nella mappa di topologia un host è finito sotto l'intestazione o i pannelli.**
+Dalla 1.3.0 gli host non possono più uscire dall'area sicura in alto e a sinistra, e una disposizione salvata con host troppo in alto viene abbassata da sola all'apertura. Se vuoi comunque ripartire da una disposizione ordinata, passa dalla vista **Hierarchical** o **Circular** (che calcolano la disposizione da sole) e torna a **Subnet Grid**.
+
+**Cambiando vista (Hierarchical / Circular) non succedeva nulla.**
+Era un difetto delle versioni precedenti: la disposizione salvata prevaleva su qualunque vista. Dalla 1.3.0 ogni vista ha la sua disposizione, calcolata o salvata a parte.
+
+**La sessione mi si chiude anche se lavoro.**
+Il timeout di inattività è impostato per ogni utente in Impostazioni → Sicurezza. Conta l'uso reale della pagina (clic, tastiera): gli aggiornamenti automatici in background non tengono viva la sessione. Se vieni disconnesso mentre lavori, aumenta il valore.
+
+**Un host non mostra l'hostname, solo l'indirizzo IP.**
+In reti virtuali o dietro NAT nessun protocollo di risoluzione (DNS inverso, mDNS, NetBIOS) risponde, quindi il nome non è recuperabile dalla scansione. Puoi impostarlo a mano dalla scheda *System Information* dell'host. Nelle reti reali, con DNS inverso o NetBIOS attivi, il nome viene in genere recuperato da solo.

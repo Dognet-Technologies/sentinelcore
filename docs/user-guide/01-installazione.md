@@ -72,10 +72,10 @@ Da qui in poi l'appliance si comporta come un'installazione normale: ad ogni ria
 
 ### Passi
 
-1. Scarica il pacchetto (`sentinelcore-<versione>-linux-x86_64.tar.gz`) e verificane l'integrità, se disponi del checksum:
+1. Scarica il pacchetto (`sentinelcore-<versione>-linux-x86_64.tar.gz`) e verificane l'integrità e la provenienza, come descritto nella sezione *Verificare i file scaricati* qui sotto:
 
    ```bash
-   sha256sum -c sentinelcore-<versione>-linux-x86_64.tar.gz.sha256
+   sha256sum -c SHA256SUMS --ignore-missing
    ```
 
 2. Estrai ed esegui l'installer:
@@ -103,6 +103,30 @@ Da qui in poi l'appliance si comporta come un'installazione normale: ad ogni ria
 4. Al termine, annota le credenziali admin stampate a schermo e collegati all'indirizzo indicato.
 
 > Per esporre l'istanza su Internet con un dominio reale e un certificato Let's Encrypt al posto di quello auto-firmato, consulta la documentazione tecnica `packaging/HTTPS.md` nel repository, oppure richiedila al tuo fornitore.
+
+---
+
+## Verificare i file scaricati
+
+Dalla versione 1.3.0 ogni release è costruita e firmata in modo automatico, e per ogni versione trovi accanto ai file (pacchetto `.tar.gz`, immagini `.ova` e `.qcow2`):
+
+| File | A cosa serve |
+|---|---|
+| `SHA256SUMS` | l'elenco dei checksum di tutti i file della release |
+| `SHA256SUMS.asc` | la firma di quell'elenco |
+| `sentinelcore-<versione>-linux-x86_64.tar.gz.asc` | la firma del solo pacchetto binario |
+| `sentinelcore-release.pub.asc` | la chiave pubblica con cui verificare le firme |
+
+Per controllare che i file siano autentici e non alterati:
+
+```bash
+gpg --import sentinelcore-release.pub.asc
+gpg --fingerprint security@dognet.tech
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum -c SHA256SUMS --ignore-missing
+```
+
+L'impronta mostrata dal secondo comando deve essere esattamente `18B5 A69F 9767 84E2 5BF2 91F1 8CAD B9F7 D59F 68A1`: se è diversa, non usare i file. Il terzo comando deve dire `Good signature`, il quarto `OK` per ciascun file scaricato.
 
 ---
 

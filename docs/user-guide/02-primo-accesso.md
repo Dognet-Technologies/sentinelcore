@@ -15,7 +15,7 @@ Subito dopo il primo accesso, vai su **Profilo** (icona utente in alto a destra 
 
 Dalla stessa pagina Profilo puoi anche:
 
-- caricare una foto profilo o scegliere uno dei due avatar predefiniti per il tuo ruolo;
+- caricare una foto profilo o scegliere uno dei quattro avatar predefiniti per il tuo ruolo;
 - impostare la lingua dell'interfaccia (italiano o inglese);
 - collegare un webhook Slack personale, per ricevere lì gli stessi avvisi critici dell'email;
 - scegliere il tuo **team principale** (se sei membro di più team), usato come riferimento per i filtri e l'ordinamento delle notifiche.
@@ -36,5 +36,7 @@ La barra laterale a sinistra è organizzata in quattro aree:
 | **Amministrazione** | Team*, Utenti*, Plugin**, Impostazioni | * Team Leader+, ** solo Amministratore |
 
 In alto a destra trovi sempre: ricerca globale, campanella delle notifiche in-app, e il menu del tuo profilo utente.
+
+I dati si **aggiornano da soli**: quando un collega crea un utente, assegna una vulnerabilità o cambia un piano, le liste che hai aperto si ricaricano senza che tu debba premere F5. Passando il mouse su un utente o su un team compare una piccola scheda informativa (ruolo, team, contatti).
 
 Il capitolo successivo spiega nel dettaglio cosa può fare ciascuno dei tre ruoli disponibili.
