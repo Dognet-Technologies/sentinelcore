@@ -98,6 +98,18 @@ Aprendo il dettaglio di un host, nella scheda **System Configuration** trovi **R
 
 > Per policy predefinita, un utente semplice non modifica questi campi direttamente ma propone una modifica che un admin/team leader approva — vedi "Override permessi utente" nel capitolo 4 per attivare la modifica diretta.
 
+### Cloni in altre reti (testing e pre-produzione)
+
+Di solito gli host sono asset **in produzione**, ma può esistere una copia dello stesso asset in una rete di **testing** e/o di **pre-produzione**: è dove conviene provare una remediation o una modifica prima di applicarla in produzione. La scheda **Cloni in altre reti** (sotto RBRE & Compliance, con la sua matita di modifica) serve a dichiararlo:
+
+- **Clone in rete di Testing** e **Clone in rete di Pre-produzione** sono due caselle indipendenti. Spuntandone una si abilitano i campi del clone:
+  - **Host del clone** — IP, hostname o URL dell'host nell'altra rete (obbligatorio se la casella è spuntata);
+  - **ID agent (dog_agent) sul clone** — l'identificativo dell'agent che gira su quel clone (facoltativo). Sono ammessi lettere, numeri e i simboli `. _ : -`.
+- Togliendo la spunta, i dati di quel clone vengono cancellati: non restano valori vecchi dimenticati.
+- Modifica e salvataggio seguono le stesse regole degli altri dati del dispositivo (Amministratore e Team Leader del team dell'host; un Utente solo con l'override di modifica diretta, vedi capitolo 4).
+
+È un'informazione **solo organizzativa**: oggi non entra in nessun calcolo (né nel punteggio di rischio né nei piani di remediation) e non avvia nessuna azione sul clone. È predisposta perché in futuro venga **esportata verso le integrazioni tra gli host** della suite.
+
 ### Il riepilogo remediation di un host
 
 In fondo alla stessa pagina la scheda **Remediation Summary** riguarda **solo l'host che stai guardando** (il suo nome è scritto nell'intestazione). I numeri contano i **piani di remediation che includono questo host**, escluse le bozze e i piani annullati: un piano con quattro host conta 1 su ciascuno dei quattro, quindi due host dello stesso piano mostrano lo stesso numero.
