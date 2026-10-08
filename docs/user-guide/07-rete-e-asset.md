@@ -103,8 +103,8 @@ Aprendo il dettaglio di un host, nella scheda **System Configuration** trovi **R
 Di solito gli host sono asset **in produzione**, ma può esistere una copia dello stesso asset in una rete di **testing** e/o di **pre-produzione**: è dove conviene provare una remediation o una modifica prima di applicarla in produzione. La scheda **Cloni in altre reti** (sotto RBRE & Compliance, con la sua matita di modifica) serve a dichiararlo:
 
 - **Clone in rete di Testing** e **Clone in rete di Pre-produzione** sono due caselle indipendenti. Spuntandone una si abilitano i campi del clone:
-  - **Host del clone** — IP, hostname o URL dell'host nell'altra rete (obbligatorio se la casella è spuntata);
-  - **Rete / CIDR del clone** — facoltativo: la rete in cui sta il clone, come CIDR (es. `10.20.0.0/24`) o come nome. Di norma le reti di testing e di pre-produzione hanno indirizzamenti diversi da quella di produzione, quindi conviene indicarla;
+  - **Host del clone** — IP, hostname o URL dell'host nell'altra rete (obbligatorio se la casella è spuntata). Un indirizzo IP deve essere **interno**; uno esterno (pubblico) viene segnalato come errore e non si salva;
+  - **Rete / CIDR del clone** — facoltativo: la rete in cui sta il clone, come CIDR (es. `10.20.0.0/24`) o come nome. Di norma le reti di testing e di pre-produzione hanno indirizzamenti diversi da quella di produzione, quindi conviene indicarla. Un CIDR deve stare interamente in un blocco interno (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`): una rete esterna è un errore;
   - **ID agent (dog_agent) sul clone** — l'identificativo dell'agent che gira su quel clone (facoltativo). Sono ammessi lettere, numeri e i simboli `. _ : -`;
   - **Allineato alla produzione** — una spunta per dichiarare esplicitamente che il clone ha le stesse versioni dei servizi e gli stessi aggiornamenti. Dovrebbe esserlo sempre, ma scriverlo dice a chi lo usa se può fidarsi del test.
 - Togliendo la spunta, i dati di quel clone vengono cancellati: non restano valori vecchi dimenticati.
