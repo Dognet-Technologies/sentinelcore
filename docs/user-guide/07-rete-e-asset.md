@@ -104,7 +104,9 @@ Di solito gli host sono asset **in produzione**, ma può esistere una copia dell
 
 - **Clone in rete di Testing** e **Clone in rete di Pre-produzione** sono due caselle indipendenti. Spuntandone una si abilitano i campi del clone:
   - **Host del clone** — IP, hostname o URL dell'host nell'altra rete (obbligatorio se la casella è spuntata);
-  - **ID agent (dog_agent) sul clone** — l'identificativo dell'agent che gira su quel clone (facoltativo). Sono ammessi lettere, numeri e i simboli `. _ : -`.
+  - **Rete / CIDR del clone** — facoltativo: la rete in cui sta il clone, come CIDR (es. `10.20.0.0/24`) o come nome. Di norma le reti di testing e di pre-produzione hanno indirizzamenti diversi da quella di produzione, quindi conviene indicarla;
+  - **ID agent (dog_agent) sul clone** — l'identificativo dell'agent che gira su quel clone (facoltativo). Sono ammessi lettere, numeri e i simboli `. _ : -`;
+  - **Allineato alla produzione** — una spunta per dichiarare esplicitamente che il clone ha le stesse versioni dei servizi e gli stessi aggiornamenti. Dovrebbe esserlo sempre, ma scriverlo dice a chi lo usa se può fidarsi del test.
 - Togliendo la spunta, i dati di quel clone vengono cancellati: non restano valori vecchi dimenticati.
 - Modifica e salvataggio seguono le stesse regole degli altri dati del dispositivo (Amministratore e Team Leader del team dell'host; un Utente solo con l'override di modifica diretta, vedi capitolo 4).
 
