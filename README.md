@@ -12,7 +12,7 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
-[![Version](https://img.shields.io/badge/version-1.3.0-success.svg)]()
+[![Version](https://img.shields.io/badge/version-2.0.0-success.svg)]()
 
 </div>
 
@@ -20,15 +20,16 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 ---
 
-## What v1.3.0 brings
+## What v2.0.0 brings
 
-1.3.0 builds on the 1.2.0 line (native **MCP server** with read/write tools, granular notification preferences, VM appliance first-boot fix) with a round of operator-facing work. The full detail is in the [User Manual](docs/user-guide/README.md); the headlines are:
+2.0.0 builds on the 1.2.0 line (native **MCP server** with read/write tools, granular notification preferences, VM appliance first-boot fix) with a round of operator-facing work. The full detail is in the [User Manual](docs/user-guide/README.md); the headlines are:
 
 - **Interactive network topology** — box selection, rigid group moves, Ctrl+wheel zoom, pan, and *Fit*; personalised manual links (shape, stroke, end shapes, colour, TAG such as *lateral movement* / *monitored segment*, animation); scanner-discovered links drawn animated; subnet frames that follow their hosts, move by their header, and collapse into a summary card; **hierarchical** and **circular** views grouped by subnet, with a saved layout per view; a safe area so nodes never end up under the header.
 - **Interactive dashboard** — every column of *Vulnerability Trend* opens that day's panel: a rose chart by severity, headline numbers, and internal links to the most critical vulnerabilities and most exposed hosts.
 - **A risk score you can read** — the host *Input del risk score* card lists only the fields that really feed the engine, with the points each value contributes; duplicated fields were unified (`criticality`, `is_internet_facing` and `has_public_ip` are now derived — migration 157).
-- **Remediation plans** — pick hosts with search and bulk-select, remove them again, add hosts or vulnerabilities to a *draft* plan from the right-click menu on Hosts and Vulnerabilities, and plans move from *active* to *completed* by themselves the moment the last vulnerability is resolved (migration 158). Each host's *Remediation Summary* now counts only that host's plans.
+- **Remediation plans, rebuilt around vulnerabilities** — a plan is now the explicit list of the vulnerabilities to fix, not whole hosts (**breaking**: migration 161, `/remediation-plans/:id/devices*` replaced by `/vulnerabilities`, `/vulnerabilities/remove`, `/scope` and `/selection/preview`). Pick them with combinable criteria (network/CIDR, host type, owner team, exposure, risk tier, severity, KEV, CVE, free text), one by one, all results, or per host (*all of the asset's vulnerabilities* / *risk X or higher*); new vulnerabilities on a plan's host no longer join it by themselves; existing plans are back-filled once with what they covered. Plans still complete by themselves the moment the last vulnerability is resolved (migration 158). Each host's *Remediation Summary* counts only that host's plans.
 - **Host clones** — a host can declare a clone in a *testing* and/or *pre-production* network (host/URL, network/CIDR, dog_agent id, and an "aligned with production" flag) so remediations can be tried there first; informational today, meant for the cross-tool integrations (migration 159).
+- **KEV and NVD on the vulnerability page** — a threat-intelligence card (vendor, product, due date, required action, ransomware use; migration 160) with KEV/NVD events in the timeline, and an admin action to run both updaters on demand. Table toolbars gained a working *Columns* picker, and every date is shown in European format.
 - **Comments** — threads of any depth, `@mention` autocompletion, and only the mentioned users are notified.
 - **Realtime** — Server-Sent Events refresh lists, notifications and dashboards without a reload.
 - **Security** — session revocation (password change, lock, delete), per-IP rate limits on login / 2FA, TOTP anti-replay, network scans through a root-owned wrapper with an option allowlist, validated Slack webhook URLs, and audit-log visibility by role.
@@ -412,12 +413,13 @@ If you spot something, please **don't** open a public issue. Email `security@dog
 
 ## Roadmap
 
-**Shipped in 1.3.0**
+**Shipped in 2.0.0**
 
 - Interactive topology (selection, zoom, personalised links, grouped hierarchical / circular views, collapsible subnets).
 - Dashboard day panel with rose chart and internal links; real-data *Trend* column.
 - Host *Input del risk score* card with points per value; unified derived fields (migration 157).
-- Remediation plans: host picker, draft-only host editing, add from Hosts / Vulnerabilities, instant auto-completion (migration 158); per-host Remediation Summary.
+- Remediation plans built on explicit vulnerabilities with multi-criteria selection, draft-only editing, add from Hosts / Vulnerabilities, instant auto-completion (migrations 158, 161); per-host Remediation Summary.
+- CISA KEV / NVD details and timeline events; on-demand updaters; host clones in testing / pre-production (migrations 159, 160).
 - Threaded comments with `@mention` autocompletion; realtime updates (SSE).
 - Security hardening: session revocation, login rate limits, TOTP anti-replay, scan wrapper allowlist, Slack webhook validation, audit visibility by role.
 - WCAG AA contrast for all themes.
@@ -474,7 +476,7 @@ Pull requests and issues are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) be
 
 Two things that will save us all time:
 
-1. Branch off `develop/v1.3.0`, not `main`. `main` only takes curated merges.
+1. Branch off `develop/v2.0.0`, not `main`. `main` only takes curated merges.
 2. If you touch a sqlx query, commit the regenerated `.sqlx/` cache in the same PR.
 
 ---

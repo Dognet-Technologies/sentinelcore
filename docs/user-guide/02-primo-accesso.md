@@ -39,4 +39,15 @@ In alto a destra trovi sempre: ricerca globale, campanella delle notifiche in-ap
 
 I dati si **aggiornano da soli**: quando un collega crea un utente, assegna una vulnerabilità o cambia un piano, le liste che hai aperto si ricaricano senza che tu debba premere F5. Passando il mouse su un utente o su un team compare una piccola scheda informativa (ruolo, team, contatti).
 
+### La barra delle tabelle
+
+Sopra ogni tabella trovi la ricerca e, a destra, alcune icone:
+
+- **Colonne** — apre l'elenco delle colonne con una spunta ciascuna: scegli quali vedere. La scelta viene ricordata per quella tabella;
+- **Esporta** — scarica la tabella (dove disponibile);
+- **Aggiorna** — ricarica i dati;
+- nella tabella **Vulnerabilità**, per gli amministratori, **Avvia aggiornamenti** (vedi capitolo 6).
+
+L'ordinamento si cambia cliccando sull'intestazione di una colonna. **Date e orari** sono ovunque in formato europeo: GG/MM/AAAA e ore a 24 ore (es. `09/10/2026, 00:38:58`), anche con l'interfaccia in inglese.
+
 Il capitolo successivo spiega nel dettaglio cosa può fare ciascuno dei tre ruoli disponibili.

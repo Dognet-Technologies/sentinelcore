@@ -21,14 +21,17 @@ Questo manuale è pensato per due tipi di lettori:
 
 Non è richiesta alcuna conoscenza di programmazione: SentinelCore si installa da pacchetti pronti e si usa interamente da interfaccia web.
 
-## Novità della versione 1.3.0
+## Novità della versione 2.0.0
 
-Rispetto alla 1.2.0, la 1.3.0 porta soprattutto questi cambiamenti (i dettagli sono nei capitoli indicati):
+Rispetto alla 1.2.0, la 2.0.0 porta soprattutto questi cambiamenti (i dettagli sono nei capitoli indicati):
 
 - **Mappa di rete rinnovata** — selezione a riquadro, spostamento di gruppi di host, zoom e scorrimento, linee personalizzabili (forma, colore, TAG, animazione), collegamenti scoperti dagli scanner animati, sottoreti raccolte in riquadri comprimibili, viste gerarchica e circolare raggruppate per sottorete (capitolo 7).
 - **Dashboard interattiva** — ogni colonna del grafico "Vulnerability Trend" apre il dettaglio di quel giorno, con grafico per severity e collegamenti a vulnerabilità e host (capitolo 6).
 - **Punteggio di rischio più chiaro sugli host** — la scheda "Input del risk score" mostra solo i dati che entrano davvero nel calcolo, con i punti che ciascuno porta; i campi doppi sono stati unificati (capitolo 7).
-- **Piani di remediation più semplici** — scelta degli host con ricerca, possibilità di toglierli, aggiunta di host e vulnerabilità a un piano in bozza dal tasto destro, chiusura automatica immediata del piano (capitolo 9).
+- **Piani di remediation precisi** — un piano è ora l'elenco delle **vulnerabilità** scelte, non degli host interi: si cercano con criteri combinabili (rete/CIDR, tipo di host, team, esposizione, rischio, gravità, KEV, CVE, testo), si aggiungono una per una, tutte insieme o "tutte quelle dell'asset / di rischio X", e le vulnerabilità nuove su un host del piano non ci entrano da sole. Chiusura automatica immediata del piano. È il cambiamento che porta la versione a 2.0.0 (capitolo 9).
+- **Dettagli CISA KEV e NVD** — la pagina di una vulnerabilità mostra i dati del catalogo KEV (prodotto, scadenza, azione richiesta, uso ransomware) e l'esito dell'arricchimento NVD, con gli eventi relativi in timeline; gli amministratori possono avviare a mano i due aggiornamenti dalla barra della tabella (capitolo 6).
+- **Cloni dell'host in testing e pre-produzione** — nella pagina dell'host si dichiara dove vive una copia, con rete e flag "allineato alla produzione" (capitolo 7).
+- **Tabelle più utili** — il tasto **Colonne** sceglie le colonne visibili (e la scelta resta); date e ore in formato europeo ovunque (capitolo 2).
 - **Commenti più ricchi** — risposte a qualsiasi livello e autocompletamento delle menzioni `@utente` (capitolo 6).
 - **Aggiornamento in tempo reale** — liste, notifiche e dashboard si aggiornano da sole, senza ricaricare la pagina.
 - **Sicurezza** — revoca delle sessioni, limite ai tentativi di accesso, codici 2FA non riutilizzabili, scansioni di rete eseguite da un componente privilegiato con elenco di opzioni consentite (capitolo 4).
@@ -43,7 +46,7 @@ Rispetto alla 1.2.0, la 1.3.0 porta soprattutto questi cambiamenti (i dettagli s
 - **Punteggio di rischio** — un punteggio composito 0–100 che combina CVSS, probabilità di sfruttamento reale (EPSS), impatto di business, esposizione dell'asset e disponibilità di exploit noti, con override automatici per zero-day, CVE sfruttate da ransomware e vulnerabilità attivamente sfruttate (catalogo CISA KEV).
 - **SLA e scadenze** — ogni livello di rischio ha una scadenza di rimedio (Critical 1 giorno, High 7 giorni, Medium 30 giorni, Low 90 giorni); il sistema segnala automaticamente gli sforamenti.
 - **Assegnazione** — manuale (a team o utente) oppure automatica tramite regole basate su competenze (skill) e bilanciamento del carico.
-- **Piani di remediation** — raggruppano gli host (e quindi le loro vulnerabilità) in piani eseguibili, con stato di avanzamento calcolato sulle vulnerabilità realmente risolte, chiusura automatica al 100%, commenti e verifica finale.
+- **Piani di remediation** — ordini di lavoro che raggruppano vulnerabilità scelte con precisione in piani eseguibili, con stato di avanzamento calcolato sulle vulnerabilità realmente risolte, chiusura automatica al 100%, commenti e verifica finale.
 - **Collaborazione** — commenti a thread con menzioni (`@utente`, con autocompletamento), notifiche in-app, classifiche di risoluzione per utenti e team. Le liste e le notifiche si aggiornano in tempo reale.
 - **Notifiche** — motore di regole (condizioni, priorità, throttling, orari di silenzio) che invia avvisi via email, Slack e Telegram.
 - **Integrazioni** — sincronizzazione bidirezionale con JIRA, arricchimento CVE da NVD, aggiornamento giornaliero EPSS, webhook SOAR in uscita.

@@ -65,9 +65,15 @@ Aprendo una vulnerabilità trovi: descrizione tecnica, riferimenti CVE/CWE, cron
 - scrivendo `@` compare l'**autocompletamento** con tutti gli utenti della piattaforma: scegline uno per menzionarlo. **Solo le persone menzionate** ricevono la notifica in-app, non l'intero team;
 - l'etichetta **Internal** è solo un'indicazione ("nota interna"): non limita chi può leggere il commento.
 
+Nella parte centrale, sotto descrizione e rimedio, trovi **Threat intelligence** e **Asset interessato**; a destra riepilogo del rischio, riapertura, sorgenti e assegnazione. Le righe della stessa CVE su host diversi sono vulnerabilità distinte: dall'elenco ogni riga apre proprio la sua.
+
 Per le CVE presenti nel catalogo **CISA KEV** il dettaglio mostra una scheda dedicata con i dati del catalogo: vendor e prodotto, nome della vulnerabilità, data di inserimento, azione richiesta, scadenza e indicazione di uso in campagne ransomware. Se la CVE è stata arricchita da **NVD**, la scheda riporta anche l'esito dell'arricchimento.
 
 La **timeline** registra anche questi passaggi automatici: *eseguito arricchimento NVD* (o *CVE non trovata su NVD*), *riscontrato nel catalogo KEV*, *rimosso dal catalogo KEV* e *segnalato come sfruttato da ransomware*.
+
+Se il catalogo KEV non è ancora stato scaricato, la scheda lo dice ("Catalogo CISA KEV non ancora scaricato") invece di dichiarare la CVE non presente.
+
+**Avviare gli aggiornamenti a mano (Amministratore).** Il catalogo KEV e l'arricchimento NVD si aggiornano da soli ogni 24 ore e all'avvio del servizio. Dalla tabella **Vulnerabilità**, l'icona **Avvia aggiornamenti** offre *KEV + NVD*, *solo KEV* o *solo NVD*: il KEV parte subito e mostra quante vulnerabilità risultano nel catalogo, l'arricchimento NVD prosegue in background.
 
 Quando crei una vulnerabilità a mano, il modulo si apre sempre **vuoto**: i dati dell'ultima vulnerabilità inserita non vengono riproposti.
 

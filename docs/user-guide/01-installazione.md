@@ -108,7 +108,7 @@ Da qui in poi l'appliance si comporta come un'installazione normale: ad ogni ria
 
 ## Verificare i file scaricati
 
-Dalla versione 1.3.0 ogni release è costruita e firmata in modo automatico, e per ogni versione trovi accanto ai file (pacchetto `.tar.gz`, immagini `.ova` e `.qcow2`):
+Dalla versione 2.0.0 ogni release è costruita e firmata in modo automatico, e per ogni versione trovi accanto ai file (pacchetto `.tar.gz`, immagini `.ova` e `.qcow2`):
 
 | File | A cosa serve |
 |---|---|
