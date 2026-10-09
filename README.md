@@ -56,6 +56,7 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
 - Composite risk score combining CVSS base, EPSS probability, business impact, asset exposure, and exploit availability.
 - Severity tiers map directly onto SLA windows (Critical 1d, High 7d, Medium 30d, Low 90d) with 75% / 90% / 100% breach signals.
 - Override channel for zero-days, ransomware-tied CVEs, and entries in CISA KEV.
+- KEV details card on the vulnerability page (vendor, due date, required action, ransomware use) with KEV/NVD events recorded in the timeline.
 
 ### Collaboration
 
