@@ -58,11 +58,14 @@ echo "Server origin (CORS): https://$SERVER_NAME   |   NIC discovery: $NET_IFACE
 
 # ── 1. runtime deps (NIENTE toolchain di build) ─────────────────────────────
 log "1/9 Installazione dipendenze runtime"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y --no-install-recommends \
-  postgresql nginx nmap arp-scan ca-certificates curl openssl libssl3 sudo \
-  avahi-utils samba-common-bin >/dev/null
+# SENTINELCORE_SKIP_APT: dal .deb le dipendenze arrivano da Depends (dpkg tiene il lock).
+if [ "${SENTINELCORE_SKIP_APT:-false}" != true ]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y --no-install-recommends \
+    postgresql nginx nmap arp-scan ca-certificates curl openssl libssl3 sudo \
+    avahi-utils samba-common-bin >/dev/null
+fi
 # avahi-utils (avahi-resolve) e samba-common-bin (nmblookup): risoluzione
 # hostname via mDNS/.local e NetBIOS per i device di rete scoperti da ARP
 # scan che non hanno un record DNS inverso (tipico di telefoni/laptop su

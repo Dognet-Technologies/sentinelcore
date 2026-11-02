@@ -1,0 +1,83 @@
+name: Prerelease
+
+# Ogni push su `prerelease` produce un solo artefatto: il .deb per Debian 13.
+# Nessun tag e nessuna GitHub Release: si scarica dagli artifact del run.
+# Su altre branch il workflow non parte, quindi il merge verso main e' innocuo;
+# il flusso di release ufficiale resta release.yml.
+
+on:
+  push:
+    branches: [prerelease]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prerelease
+  cancel-in-progress: true
+
+jobs:
+  deb:
+    name: Build .deb
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Si compila su Debian 13: il binario gira solo su glibc >= di quella di build.
+    container:
+      image: debian:trixie
+    steps:
+      - name: Dipendenze di sistema
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git gnupg
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Setup Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+
+      - name: Cache cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            vulnerability-manager/target
+          key: prerelease-trixie-cargo-${{ hashFiles('vulnerability-manager/Cargo.lock') }}
+
+      # `~pre` ordina prima della versione finale: 2.0.1 aggiorna 2.0.1~pre.N.
+      - name: Calcola la versione
+        id: version
+        run: |
+          BASE="$(sed -n 's/^version = "\(.*\)"/\1/p' vulnerability-manager/Cargo.toml | head -1)"
+          echo "tag=v${BASE}-pre.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "deb=${BASE}~pre.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Tarball di release
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          CI: "false"
+        run: packaging/build-release.sh "$TAG"
+
+      - name: Pacchetto .deb
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          DEB: ${{ steps.version.outputs.deb }}
+        run: packaging/deb/build-deb.sh "$TAG" "$DEB"
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentinelcore-deb
+          path: dist/sentinelcore_*.deb
+          if-no-files-found: error
+          retention-days: 30
