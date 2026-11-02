@@ -91,6 +91,7 @@ rollback() {
   cp -a "$ROLLBACK_DIR/frontend/." "$FRONTEND/"
   rm -rf "${APP:?}/migrations"
   cp -a "$ROLLBACK_DIR/migrations" "$APP/migrations"
+  [ -f "$ROLLBACK_DIR/production.yaml" ] && cp -a "$ROLLBACK_DIR/production.yaml" "$CONFIG"
   chown -R "$SVC_USER:$SVC_USER" "$APP" "$FRONTEND"
   systemctl start sentinelcore
   rm -rf "$ROLLBACK_DIR"
@@ -172,6 +173,20 @@ fi
 chown -R "$SVC_USER:$SVC_USER" "$APP" "$FRONTEND"
 
 # ── 5. Applica le migration pendenti col NUOVO binario ──────────────────────
+# Fino alla 2.0.0 il template scriveva `secret:`, che il binario ignora: girava
+# col secret pubblico di default.yaml (vedi SECURITY.md). Ne serve uno nuovo per
+# istanza; quello in `secret:` non si riusa perche' sulle VM era uguale per tutte.
+if ! grep -qE '^[[:space:]]+secret_key:' "$CONFIG"; then
+  log "Generazione del secret di istanza (gli utenti dovranno rifare il login)"
+  cp -a "$CONFIG" "$ROLLBACK_DIR/production.yaml"
+  NEW_SECRET="$(openssl rand -hex 32)"
+  if sed -n '/^auth:/,/^[a-z]/p' "$CONFIG" | grep -qE '^[[:space:]]+secret:'; then
+    sed -i -E "/^auth:/,/^[a-z]/s|^[[:space:]]+secret:.*|  secret_key: \"$NEW_SECRET\"|" "$CONFIG"
+  else
+    sed -i "/^auth:/a\\  secret_key: \"$NEW_SECRET\"" "$CONFIG"
+  fi
+fi
+
 log "5/6 Applicazione migration (--migrate)"
 # WorkingDirectory=$APP + APP_ENV=production replicano esattamente quello
 # che imposta sentinelcore.service: config::load_config() risolve

@@ -409,6 +409,8 @@ Building from source instead? `git pull`, then `sqlx migrate run`, `SQLX_OFFLINE
 
 If you spot something, please **don't** open a public issue. Email `security@dognet.tech` instead.
 
+Published advisories are listed in [SECURITY.md](SECURITY.md). Versions up to 2.0.0 are affected by [SC-2026-001](SECURITY.md#sc-2026-001): update to 2.0.1.
+
 ---
 
 ## Roadmap
