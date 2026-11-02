@@ -6,7 +6,7 @@ This guide was **validated by a full clean install on a Debian 13 VM** (PostgreS
 
 ## Filesystem convention — `/opt/sentinelsuite/`
 
-SentinelCore is one component of the **Sentinel Suite** (alongside FireDog and CyberSheppard). By convention all suite software installs under `/opt/sentinelsuite/<component>/`, so multiple components can coexist on the same host:
+SentinelCore is one component of the **Sentinel Suite** (alongside FireDog and CyberShepherd). By convention all suite software installs under `/opt/sentinelsuite/<component>/`, so multiple components can coexist on the same host:
 
 ```
 /opt/sentinelsuite/

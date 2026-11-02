@@ -2,12 +2,12 @@
 
 Shared contract for the **Model Context Protocol (MCP)** servers embedded in the
 Dognet Technologies product suite: **SentinelCore**, **FireDog**, and
-**CyberSheppard**. The goal is that a single agent can talk to all three with
+**CyberShepherd**. The goal is that a single agent can talk to all three with
 **one mental model** — same transport, same auth shape, same tool naming and
 response envelope — while each product keeps its own domain-specific tools.
 
 > Status: SentinelCore implements this contract (phase 1 + phase 2). FireDog and
-> CyberSheppard sections describe how they **must** implement it; their tool
+> CyberShepherd sections describe how they **must** implement it; their tool
 > catalogs are proposals until built. When code and this doc disagree, the code
 > wins.
 
@@ -20,7 +20,7 @@ Permissions](05-roles-and-permissions.md), [08 — Plugin System](08-plugin-syst
 
 **One MCP server per product, embedded natively in that product's backend.**
 Not a single external gateway. Rationale: the three products run on different
-stacks (SentinelCore = Rust/Axum, FireDog = Python/Django, CyberSheppard =
+stacks (SentinelCore = Rust/Axum, FireDog = Python/Django, CyberShepherd =
 its own stack), and a native server reuses each product's existing
 authentication, RBAC/scope, and data access without a translation layer or a
 second source of truth.
@@ -54,7 +54,7 @@ Every product's MCP server MUST implement:
 | `tools/call` | See §5. |
 
 `serverInfo.name` convention: `<product>-mcp` (e.g. `sentinelcore-mcp`,
-`firedog-mcp`, `cybersheppard-mcp`). `serverInfo.version` = the product's own
+`firedog-mcp`, `cybershepherd-mcp`). `serverInfo.version` = the product's own
 package version.
 
 ---
@@ -151,8 +151,8 @@ them as a tool outcome, not a transport fault.
 
 | Phase | Scope | Status |
 |---|---|---|
-| **Phase 1** | Read-only: `list_*`, `get_*`, `search_*`, `*_summary` | SentinelCore: done. FireDog / CyberSheppard: pending. |
-| **Phase 2** | Write / actions, gated by per-action RBAC scope | SentinelCore: done. FireDog / CyberSheppard: pending. |
+| **Phase 1** | Read-only: `list_*`, `get_*`, `search_*`, `*_summary` | SentinelCore: done. FireDog / CyberShepherd: pending. |
+| **Phase 2** | Write / actions, gated by per-action RBAC scope | SentinelCore: done. FireDog / CyberShepherd: pending. |
 
 A product MAY ship phase 1 before phase 2. Read tools MUST remain read-only
 after phase 2 lands.
@@ -208,9 +208,9 @@ real domain before building):
 
 **Phase-2 candidates:** `apply_rule`, `revert_rule`, `sync_target`.
 
-### 7.3 CyberSheppard — (proposed, to build)
+### 7.3 CyberShepherd — (proposed, to build)
 
-Server: `cybersheppard-mcp`. Domain and data model to be confirmed. Once known,
+Server: `cybershepherd-mcp`. Domain and data model to be confirmed. Once known,
 map its primary entities onto the same `list_* / get_* / *_summary` conventions
 and record the concrete catalog here.
 

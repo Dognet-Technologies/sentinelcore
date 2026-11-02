@@ -71,7 +71,7 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
 - Native **Model Context Protocol** server embedded in the backend — single endpoint `POST /api/mcp`, JSON-RPC 2.0, no external gateway.
 - **Read tools**: `list_vulnerabilities`, `get_vulnerability`, `get_risk_summary`.
 - **Write tools**: `assign_vulnerability`, `update_vulnerability_status`, `accept_risk`, `trigger_scan` — each gated by a per-API-key scope guardrail.
-- Same contract shared across the Dognet Technologies suite (SentinelCore, FireDog, CyberSheppard) — see [docs/11-mcp-contract.md](docs/11-mcp-contract.md).
+- Same contract shared across the Dognet Technologies suite (SentinelCore, FireDog, CyberShepherd) — see [docs/11-mcp-contract.md](docs/11-mcp-contract.md).
 
 ### Integrations
 
@@ -451,7 +451,7 @@ Published advisories are listed in [SECURITY.md](SECURITY.md). Versions up to 2.
 
 - Phase C: skill-based auto-assignment with "add skill" alert in the assignment dialog.
 - Container scanning (Trivy / Grype) — importers already in tree, wiring up next.
-- MCP contract rollout to FireDog and CyberSheppard (contract defined in [docs/11-mcp-contract.md](docs/11-mcp-contract.md), implementation in progress on each product).
+- MCP contract rollout to FireDog and CyberShepherd (contract defined in [docs/11-mcp-contract.md](docs/11-mcp-contract.md), implementation in progress on each product).
 
 **Considered, not committed**
 
