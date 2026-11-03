@@ -63,3 +63,7 @@ docs/design_handoff_sentinelcore_redesign/
 docs/sentinelcore testing new frontend.zip
 /dist/
 docs/ROADMAP.md
+
+# Dati locali di Claude Code
+.claude/
+instincts/
