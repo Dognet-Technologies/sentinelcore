@@ -12,13 +12,22 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
-[![Version](https://img.shields.io/badge/version-2.0.0-success.svg)]()
+[![Version](https://img.shields.io/badge/version-2.0.1-success.svg)]()
 
 </div>
 
 > **Stability disclaimer.** SentinelCore is in **beta**. Core flows are stable on a single-host deployment with a dedicated PostgreSQL instance. Multi-tenant, HA, and containerized deployments are not yet supported. Use the issue tracker for production blockers.
 
 ---
+
+## What v2.0.1 brings
+
+Available in the weekly build, not yet published as a release.
+
+- **Security fix [SC-2026-001](SECURITY.md#sc-2026-001)** — each installation now gets its own JWT secret, and production refuses to start on a public default. The role always comes from the database, and a session must belong to the token's user. After updating, follow the steps in the advisory.
+- **SentinelSuite identity** — shared login page with 2FA and password recovery, official favicon, `SentinelCore | SentinelSuite` tab title and Dognet Technologies footer.
+- **`.deb` package** — see [Weekly builds](#weekly-builds).
+- **New option**: `VULN_AUTH_SECRET_KEY` now really overrides `auth.secret_key`. Before, this variable had no effect.
 
 ## What v2.0.0 brings
 
@@ -378,6 +387,16 @@ Restore:
 gunzip -c backup_YYYYMMDD.sql.gz | sudo -u postgres psql sentinelcore_db
 ```
 
+### Weekly builds
+
+The `prerelease` branch is the test channel: each push produces one `.deb` package for Debian 13. Get it from **Actions → Prerelease → latest run → Artifacts** (`sentinelcore-deb`). You need to be signed in to GitHub, and artifacts are kept for 30 days.
+
+```bash
+sudo apt install ./sentinelcore_<version>_amd64.deb
+```
+
+Use `apt` rather than `dpkg -i`, so that dependencies are installed too. A first install sets up the server and database; on an existing install it runs `upgrade.sh`, with a database backup and migrations. Weekly builds are for testing: use releases in production.
+
 ### Updates
 
 Use the `upgrade.sh` shipped in every release tarball (also for the VM appliance): it takes a database backup first, installs the new files, applies the migrations and checks health, rolling back automatically if the migrations fail. Verify the download first — see [packaging/README.md](packaging/README.md) and chapter 1 of the manual (`SHA256SUMS` + GPG signature).
@@ -414,6 +433,12 @@ Published advisories are listed in [SECURITY.md](SECURITY.md). Versions up to 2.
 ---
 
 ## Roadmap
+
+**Coming in 2.0.1**
+
+- Per-instance JWT secret and database-backed roles (SC-2026-001).
+- Shared SentinelSuite login, favicon and tab title.
+- Weekly `.deb` builds for Debian 13.
 
 **Shipped in 2.0.0**
 
