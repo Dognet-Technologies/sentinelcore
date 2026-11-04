@@ -22,13 +22,29 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 ## What v2.1.0 brings
 
-In development, not yet in the weekly build.
+Available in the weekly build, not yet published as a release.
+
+**Scanner integrations**
 
 - **Native Tenable Nessus connector** — works with both Nessus Essentials and Professional (the edition is detected from `/server/properties`, nothing to choose); certified release **10.12.x**. Read-only REST client (API keys or username/password): it polls completed scan runs, exports them as `.nessus` and imports them through the same dedup pipeline as file uploads. Configured from *Plugins → Tenable Nessus → Configure* (migration 162). The `.nessus` parser now uses the real `host-ip`/FQDN, prefers CVSS v3, and keeps CWE and references.
-
 - **Nessus Essentials without exports** — Essentials Free refuses API exports, so the connector reads the same data (CVE, CWE, CVSS, solution, port, output) from the host and plugin detail endpoints. Professional keeps using `.nessus` exports and falls back automatically if an export is refused.
 - **Edition in the import history** — *Scanner imports* shows the detected edition (*Nessus Essentials*, *Nessus Professional*, ...) in the Scanner column (migration 163, `scanner_imports.scanner_label`).
 - **Sync now** — OpenVAS and Nessus can run an import immediately from their configuration dialog (`POST /api/plugins/:id/sync`, admin only), sharing a per-plugin lock with the background poller.
+
+**Notifications**
+
+- **Critical alerts work again** — since 2026-10-01 the worker stopped at the first critical vulnerability assigned to a person instead of a team, so no critical alert was sent at all. Alerts now reach the assigned team and/or the assigned person, with the same preferences (critical alerts, email, personal Slack). Already resolved or closed criticals never alert; unassigned ones wait up to 48 hours for an assignment.
+- **Auto-assignment notifies** — vulnerabilities assigned automatically (any severity) now notify like manual assignments: one summary per recipient per run, in-app, by email/personal Slack for users with *assignment* notifications on, and on the team's Slack/Telegram channel. The priority follows the most severe vulnerability in the summary.
+
+**Network**
+
+- **Topology zoom** — the map canvas now covers the whole visible area at any zoom level: networks at the edge are no longer cut off, the empty space around them can be selected, and the page no longer grows endlessly. On the dashboard the map has a fixed 1500 px height and scrolls inside.
+- **Subnet links as a star** — when a scan cannot find the gateway, hosts of the same /24 are linked to one hub (the `.1`, or the lowest IP) instead of to each other: 256 hosts now give 255 links instead of 32,640. Old full-mesh links are removed on the next scan of that network.
+- **Clones in other networks** — an enabled testing or pre-production clone now requires its internal IP, a CIDR network that contains it and the ID of the dog_agent running on it (whose `config.toml` declares `environment = "testing"` or `"preproduction"`). A host without clones is production-only.
+
+**Installation**
+
+- **No passwords in logs** — the `.deb` installer no longer prints the generated admin password, which `apt` would keep in `/var/log/apt/term.log`. It is stored in `/etc/sentinelsuite/sentinelcore/initial-credentials` (root only, `600`) and the file deletes itself a few minutes after the password is changed.
 
 ## What v2.0.1 brings
 
@@ -455,6 +471,9 @@ Published advisories are listed in [SECURITY.md](SECURITY.md). Versions up to 2.
 
 - Native Tenable Nessus connector (Essentials + Professional, certified 10.12.x), migration 162.
 - Edition shown in the import history (migration 163) and "Sync now" for OpenVAS and Nessus.
+- Critical alerts to teams and assigned people, notifications for auto-assignment.
+- Topology canvas that follows the zoom, subnet links as a star, complete clone data.
+- Initial admin password kept out of the installer logs.
 
 **Shipped in 2.0.0**
 
