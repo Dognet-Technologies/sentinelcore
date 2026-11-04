@@ -3,7 +3,7 @@
 SentinelCore distingue due percorsi distinti che è utile non confondere:
 
 - **Network Discovery** — scopre *dispositivi* sulla rete (IP, MAC, hostname, sistema operativo, porte aperte) e li mostra come nodi di una topologia. Non genera da sola vulnerabilità: mappa "cosa c'è in rete".
-- **Import scanner** (capitolo 8) — importa *vulnerabilità* trovate da uno scanner esterno o dal connettore OpenVAS, e le collega agli asset noti.
+- **Import scanner** (capitolo 8) — importa *vulnerabilità* trovate da uno scanner esterno o dai connettori OpenVAS e Nessus, e le collega agli asset noti.
 
 ## Scansione di rete
 

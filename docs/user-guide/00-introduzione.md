@@ -42,7 +42,7 @@ Rispetto alla 1.2.0, la 2.0.0 porta soprattutto questi cambiamenti (i dettagli s
 
 - **Network Discovery** — scansione di rete integrata (basata su nmap) con profili configurabili, pianificazione ricorrente e mappa di topologia interattiva degli host scoperti.
 - **Importazione da scanner esterni** — legge i risultati di 10 scanner di terze parti (Qualys, Nessus, Burp Suite, OpenVAS/GVM, Nexpose/InsightVM, OWASP ZAP, Nmap, Nikto, Trivy, Grype), normalizza la severità, deduplica i risultati e li collega agli asset.
-- **Connettore OpenVAS diretto** — un connettore integrato interroga periodicamente un'istanza GVM/OpenVAS e importa automaticamente i report completati, senza bisogno di esportare file a mano.
+- **Connettori OpenVAS e Nessus diretti** — connettori integrati interrogano periodicamente un'istanza GVM/OpenVAS o Tenable Nessus (Essentials o Professional, release certificata 10.12.x) e importano automaticamente i report completati, senza bisogno di esportare file a mano.
 - **Punteggio di rischio** — un punteggio composito 0–100 che combina CVSS, probabilità di sfruttamento reale (EPSS), impatto di business, esposizione dell'asset e disponibilità di exploit noti, con override automatici per zero-day, CVE sfruttate da ransomware e vulnerabilità attivamente sfruttate (catalogo CISA KEV).
 - **SLA e scadenze** — ogni livello di rischio ha una scadenza di rimedio (Critical 1 giorno, High 7 giorni, Medium 30 giorni, Low 90 giorni); il sistema segnala automaticamente gli sforamenti.
 - **Assegnazione** — manuale (a team o utente) oppure automatica tramite regole basate su competenze (skill) e bilanciamento del carico.
@@ -56,7 +56,7 @@ Rispetto alla 1.2.0, la 2.0.0 porta soprattutto questi cambiamenti (i dettagli s
 
 ## Cosa NON fa (per evitare aspettative sbagliate)
 
-- **Non è uno scanner di vulnerabilità** in senso stretto: a parte la scoperta di rete/porte basata su nmap, SentinelCore non rileva da solo le vulnerabilità — le riceve da scanner esterni o dal connettore OpenVAS.
+- **Non è uno scanner di vulnerabilità** in senso stretto: a parte la scoperta di rete/porte basata su nmap, SentinelCore non rileva da solo le vulnerabilità — le riceve da scanner esterni o dai connettori OpenVAS e Nessus.
 - **Non è multi-tenant**: un'installazione serve un'unica organizzazione.
 - **Non ha alta affidabilità/clustering integrati**: è pensato per un singolo host con un'istanza PostgreSQL.
 - **Non richiede né installa agenti** sugli endpoint monitorati: la visibilità viene dalle scansioni di rete e dai dati importati dagli scanner.
@@ -74,6 +74,6 @@ Rispetto alla 1.2.0, la 2.0.0 porta soprattutto questi cambiamenti (i dettagli s
 | [5 — Team e utenti](05-team-e-utenti.md) | Creare team, aggiungere membri, gestire utenti e competenze |
 | [6 — Vulnerabilità e rischio](06-vulnerabilita-e-rischio.md) | Dashboard, elenco vulnerabilità, punteggio di rischio, stati, assegnazione |
 | [7 — Rete e asset](07-rete-e-asset.md) | Scansione di rete, topologia, gestione host |
-| [8 — Scanner e integrazioni](08-scanner-e-integrazioni.md) | Importazione da scanner esterni, connettore OpenVAS, JIRA, notifiche |
+| [8 — Scanner e integrazioni](08-scanner-e-integrazioni.md) | Importazione da scanner esterni, connettori OpenVAS e Nessus, JIRA, notifiche |
 | [9 — Report e piani di remediation](09-report-e-remediation.md) | Generare report, cronologia, piani di remediation, carico di lavoro |
 | [10 — Domande frequenti](10-domande-frequenti.md) | Problemi comuni e loro soluzione |

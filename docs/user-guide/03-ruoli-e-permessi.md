@@ -15,7 +15,7 @@ Controllo completo della piattaforma. Oltre a tutto ciò che possono fare Team L
 - eliminare i piani di remediation (creare e modificare è consentito anche al Team Leader);
 - gestire il ciclo di vita dell'accettazione del rischio (risk acceptance: approvare, rifiutare, rinnovare);
 - registrare e verificare le risoluzioni;
-- gestire i plugin (inclusa la configurazione del connettore OpenVAS);
+- gestire i plugin (inclusa la configurazione dei connettori OpenVAS e Nessus);
 - configurare l'integrazione JIRA e i webhook SOAR;
 - accedere al log di audit completo (come il Team Leader);
 - modificare tutte le **Impostazioni** di sistema (rete, sicurezza, notifiche, MCP, ecc.);
@@ -64,7 +64,7 @@ Un Utente **non** può creare/modificare/eliminare vulnerabilità o asset, asseg
 | Importare file da scanner esterni | ❌ | ❌ | ✅ |
 | Creare e modificare piani di remediation | ❌ | ✅ | ✅ |
 | Eliminare piani di remediation, gestire risk acceptance | ❌ | ❌ | ✅ |
-| Gestire plugin, connettore OpenVAS, JIRA, webhook SOAR | ❌ | ❌ | ✅ |
+| Gestire plugin, connettori OpenVAS e Nessus, JIRA, webhook SOAR | ❌ | ❌ | ✅ |
 | Log di audit | Solo le proprie azioni | Completo | Completo |
 | Impostazioni di sistema | ❌ | ❌ | ✅ |
 

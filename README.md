@@ -20,6 +20,16 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 ---
 
+## What v2.1.0 brings
+
+In development, not yet in the weekly build.
+
+- **Native Tenable Nessus connector** — works with both Nessus Essentials and Professional (the edition is detected from `/server/properties`, nothing to choose); certified release **10.12.x**. Read-only REST client (API keys or username/password): it polls completed scan runs, exports them as `.nessus` and imports them through the same dedup pipeline as file uploads. Configured from *Plugins → Tenable Nessus → Configure* (migration 162). The `.nessus` parser now uses the real `host-ip`/FQDN, prefers CVSS v3, and keeps CWE and references.
+
+- **Nessus Essentials without exports** — Essentials Free refuses API exports, so the connector reads the same data (CVE, CWE, CVSS, solution, port, output) from the host and plugin detail endpoints. Professional keeps using `.nessus` exports and falls back automatically if an export is refused.
+- **Edition in the import history** — *Scanner imports* shows the detected edition (*Nessus Essentials*, *Nessus Professional*, ...) in the Scanner column (migration 163, `scanner_imports.scanner_label`).
+- **Sync now** — OpenVAS and Nessus can run an import immediately from their configuration dialog (`POST /api/plugins/:id/sync`, admin only), sharing a per-plugin lock with the background poller.
+
 ## What v2.0.1 brings
 
 Available in the weekly build, not yet published as a release.
@@ -128,6 +138,7 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
                                      │ kev_updater              │
                                      │ log_retention            │
                                      │ notification_digest      │
+                                     │ nessus_poller            │
                                      │ nvd_api                  │
                                      │ openvas_poller           │
                                      │ remediation_plan_progress│
@@ -439,6 +450,11 @@ Published advisories are listed in [SECURITY.md](SECURITY.md). Versions up to 2.
 - Per-instance JWT secret and database-backed roles (SC-2026-001).
 - Shared SentinelSuite login, favicon and tab title.
 - Weekly `.deb` builds for Debian 13.
+
+**Coming in 2.1.0**
+
+- Native Tenable Nessus connector (Essentials + Professional, certified 10.12.x), migration 162.
+- Edition shown in the import history (migration 163) and "Sync now" for OpenVAS and Nessus.
 
 **Shipped in 2.0.0**
 
