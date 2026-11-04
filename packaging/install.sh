@@ -177,16 +177,45 @@ if [ "$HEALTH" = "200" ]; then
   JAR="$(mktemp)"
   curl -s -c "$JAR" http://127.0.0.1:8080/api/health >/dev/null 2>&1
   CSRF="$(awk '/XSRF-TOKEN/{print $7}' "$JAR" 2>/dev/null)"
-  curl -s -b "$JAR" -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
-    -X POST http://127.0.0.1:8080/api/auth/register \
-    -d "{\"username\":\"$ADMIN_USER\",\"email\":\"admin@local\",\"password\":\"$ADMIN_PASS\",\"skip_email_verification\":true}" \
-    >/dev/null 2>&1
+  # Corpo su stdin: sulla riga di comando la password sarebbe visibile in ps.
+  REG_CODE="$(printf '{"username":"%s","email":"admin@local","password":"%s","skip_email_verification":true}' \
+      "$ADMIN_USER" "$ADMIN_PASS" \
+    | curl -s -o /dev/null -w '%{http_code}' -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+      -H 'Content-Type: application/json' -X POST --data-binary @- \
+      http://127.0.0.1:8080/api/auth/register 2>/dev/null)"
   PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -q \
     -c "UPDATE users SET role='admin' WHERE username='$ADMIN_USER';" >/dev/null 2>&1
   ROLE="$(PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -tAc \
         "SELECT role FROM users WHERE username='$ADMIN_USER'" 2>/dev/null)"
-  [ "$ROLE" = "admin" ] && ADMIN_OK=1
+  # Con --force l'utente puo' esistere gia': la password generata vale solo
+  # se la registrazione e' andata a buon fine.
+  [ "$ROLE" = "admin" ] && [ "${REG_CODE:0:1}" = "2" ] && ADMIN_OK=1
   rm -f "$JAR"
+fi
+
+# Le credenziali admin vanno in un file solo root e mai a schermo: sotto apt
+# l'output finisce in /var/log/apt/term.log. Il timer cancella il file appena
+# la password viene cambiata. Lo script sta fuori da $BASE, che e' dell'utente
+# di servizio, perche' il timer lo esegue come root.
+CREDS_DIR=/etc/sentinelsuite/sentinelcore
+CREDS_TOOL=/usr/local/lib/sentinelsuite/initial-credentials.sh
+CREDS_SAVED=0
+if [ "$ADMIN_OK" = "1" ]; then
+  install -D -m 0755 -o root -g root "$PKG_DIR/templates/initial-credentials.sh" "$CREDS_TOOL"
+  install -m 0644 "$PKG_DIR/templates/sentinelcore-initial-credentials.service" \
+    "$PKG_DIR/templates/sentinelcore-initial-credentials.timer" /etc/systemd/system/
+  if printf '%s\n' "$ADMIN_PASS" | "$CREDS_TOOL" save \
+      "$CREDS_DIR" "$DB_NAME" users password_hash "$ADMIN_USER"; then
+    systemctl daemon-reload
+    systemctl enable --now sentinelcore-initial-credentials.timer >/dev/null 2>&1
+    CREDS_SAVED=1
+  else
+    # Senza file la password generata non la conosce nessuno: meglio togliere
+    # l'utente e far creare l'admin a mano come da INSTALL.md.
+    PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -q \
+      -c "DELETE FROM users WHERE username='$ADMIN_USER';" >/dev/null 2>&1
+    ADMIN_OK=0
+  fi
 fi
 
 # ── summary ─────────────────────────────────────────────────────────────────
@@ -202,10 +231,12 @@ cat <<EOF
    Servizio:   systemctl status sentinelcore
    Config:     $APP/config/production.yaml  (segreti generati, chmod 600)
 EOF
-if [ "$ADMIN_OK" = "1" ]; then
+if [ "$CREDS_SAVED" = "1" ]; then
   cat <<EOF
-   Admin:      $ADMIN_USER  /  $ADMIN_PASS
-               ⚠️  CAMBIA questa password al primo accesso.
+   Admin:      utente $ADMIN_USER, password in $CREDS_DIR/initial-credentials
+               (sudo cat ...: leggibile solo da root, mai stampata a schermo)
+               ⚠️  CAMBIA la password al primo accesso: il file si
+               cancella da solo pochi minuti dopo.
 EOF
 else
   cat <<EOF
