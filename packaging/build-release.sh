@@ -7,6 +7,12 @@
 #
 # Uso:  packaging/build-release.sh [versione]
 #       (versione default = git describe, es. v1.0.1-beta)
+#
+# Agganci per le build con estensioni (open core), entrambi facoltativi:
+#   SC_BINARY=<path>           usa questo binario gia' compilato invece di
+#                              compilare quello Community
+#   SC_FRONTEND_ACTIVE=<path>  usa questo file come src/extensions/active.ts
+#                              durante la build del frontend (poi ripristinato)
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,13 +28,31 @@ echo "▶ Release: $NAME"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 
 # ── build backend (offline sqlx) ────────────────────────────────────────────
-echo "▶ Build backend (cargo --release)"
-( cd vulnerability-manager && SQLX_OFFLINE=true cargo build --release )
-install -m 0755 vulnerability-manager/target/release/vulnerability-manager "$STAGE/vulnerability-manager"
+if [ -n "${SC_BINARY:-}" ]; then
+  [ -x "$SC_BINARY" ] || { echo "ERRORE: SC_BINARY non eseguibile: $SC_BINARY" >&2; exit 1; }
+  echo "▶ Backend: binario fornito ($SC_BINARY)"
+  install -m 0755 "$SC_BINARY" "$STAGE/vulnerability-manager"
+else
+  echo "▶ Build backend (cargo --release)"
+  ( cd vulnerability-manager && SQLX_OFFLINE=true cargo build --release )
+  install -m 0755 vulnerability-manager/target/release/vulnerability-manager "$STAGE/vulnerability-manager"
+fi
 
 # ── build frontend ──────────────────────────────────────────────────────────
 echo "▶ Build frontend (npm run build)"
+ACTIVE_TS="vulnerability-manager-frontend/src/extensions/active.ts"
+if [ -n "${SC_FRONTEND_ACTIVE:-}" ]; then
+  [ -f "$SC_FRONTEND_ACTIVE" ] || { echo "ERRORE: SC_FRONTEND_ACTIVE non trovato: $SC_FRONTEND_ACTIVE" >&2; exit 1; }
+  cp "$ACTIVE_TS" "$ACTIVE_TS.community"
+  trap 'mv -f "$REPO_ROOT/$ACTIVE_TS.community" "$REPO_ROOT/$ACTIVE_TS" 2>/dev/null || true' EXIT
+  cp "$SC_FRONTEND_ACTIVE" "$ACTIVE_TS"
+  echo "  estensioni frontend: $SC_FRONTEND_ACTIVE"
+fi
 ( cd vulnerability-manager-frontend && npm ci --no-audit --no-fund && CI=false GENERATE_SOURCEMAP=false npm run build )
+if [ -n "${SC_FRONTEND_ACTIVE:-}" ]; then
+  mv -f "$ACTIVE_TS.community" "$ACTIVE_TS"
+  trap - EXIT
+fi
 mkdir -p "$STAGE/frontend"; cp -a vulnerability-manager-frontend/build/. "$STAGE/frontend/"
 
 # ── artefatti di supporto ───────────────────────────────────────────────────

@@ -24,9 +24,14 @@ trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/share/sentinelcore/release"
 tar xzf "$TARBALL" -C "$STAGE/usr/share/sentinelcore/release" --strip-components=1
 
-sed "s/__VERSION__/${DEB_VERSION}/" "$DEB_DIR/control.in" > "$STAGE/DEBIAN/control"
+# SC_DEB_CONTROL: control alternativo per le build con estensioni (es. il
+# pacchetto sentinelcore-pro). Stessi script e stesso payload del Community.
+CONTROL_IN="${SC_DEB_CONTROL:-$DEB_DIR/control.in}"
+[ -f "$CONTROL_IN" ] || { echo "ERRORE: control non trovato: $CONTROL_IN" >&2; exit 1; }
+sed "s/__VERSION__/${DEB_VERSION}/" "$CONTROL_IN" > "$STAGE/DEBIAN/control"
 install -m 0755 "$DEB_DIR/postinst" "$DEB_DIR/prerm" "$STAGE/DEBIAN/"
 
-DEB_FILE="$OUT/sentinelcore_${DEB_VERSION}_amd64.deb"
+PACKAGE="$(sed -n 's/^Package: *//p' "$STAGE/DEBIAN/control")"
+DEB_FILE="$OUT/${PACKAGE}_${DEB_VERSION}_amd64.deb"
 dpkg-deb --root-owner-group --build "$STAGE" "$DEB_FILE"
 echo "Pacchetto: $DEB_FILE"
