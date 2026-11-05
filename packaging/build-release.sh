@@ -41,16 +41,25 @@ fi
 # ── build frontend ──────────────────────────────────────────────────────────
 echo "▶ Build frontend (npm run build)"
 ACTIVE_TS="vulnerability-manager-frontend/src/extensions/active.ts"
+# Componenti dell'estensione (.tsx): iniettati in src/extensions/pro/ così
+# active.ts può importarli (vedi SC_FRONTEND_DIR, impostato da build-pro.sh).
+PRO_DIR="vulnerability-manager-frontend/src/extensions/pro"
 if [ -n "${SC_FRONTEND_ACTIVE:-}" ]; then
   [ -f "$SC_FRONTEND_ACTIVE" ] || { echo "ERRORE: SC_FRONTEND_ACTIVE non trovato: $SC_FRONTEND_ACTIVE" >&2; exit 1; }
   cp "$ACTIVE_TS" "$ACTIVE_TS.community"
-  trap 'mv -f "$REPO_ROOT/$ACTIVE_TS.community" "$REPO_ROOT/$ACTIVE_TS" 2>/dev/null || true' EXIT
+  if [ -n "${SC_FRONTEND_DIR:-}" ]; then
+    [ -d "$SC_FRONTEND_DIR" ] || { echo "ERRORE: SC_FRONTEND_DIR non trovato: $SC_FRONTEND_DIR" >&2; exit 1; }
+    rm -rf "$PRO_DIR"; mkdir -p "$PRO_DIR"; cp -a "$SC_FRONTEND_DIR/." "$PRO_DIR/"
+    echo "  componenti frontend: $SC_FRONTEND_DIR → $PRO_DIR"
+  fi
+  trap 'mv -f "$REPO_ROOT/$ACTIVE_TS.community" "$REPO_ROOT/$ACTIVE_TS" 2>/dev/null || true; rm -rf "$REPO_ROOT/$PRO_DIR" 2>/dev/null || true' EXIT
   cp "$SC_FRONTEND_ACTIVE" "$ACTIVE_TS"
   echo "  estensioni frontend: $SC_FRONTEND_ACTIVE"
 fi
 ( cd vulnerability-manager-frontend && npm ci --no-audit --no-fund && CI=false GENERATE_SOURCEMAP=false npm run build )
 if [ -n "${SC_FRONTEND_ACTIVE:-}" ]; then
   mv -f "$ACTIVE_TS.community" "$ACTIVE_TS"
+  rm -rf "$PRO_DIR"
   trap - EXIT
 fi
 mkdir -p "$STAGE/frontend"; cp -a vulnerability-manager-frontend/build/. "$STAGE/frontend/"
