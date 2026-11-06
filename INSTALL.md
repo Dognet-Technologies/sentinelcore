@@ -758,3 +758,43 @@ initial credentials
 | Discovery "devices_found" looks 1–2 higher than real hosts | Cosmetic: arp-scan footer lines are counted before the IP parse drops them. Real hosts persist correctly; harmless |
 | OpenVAS plugin: "Connessione OK · GMP X.x" never returns / "gvm-cli not found" | `gvm-tools` not installed or not in the systemd `PATH`. Install with `sudo pipx install --global gvm-tools` (step 9), then restart `sentinelcore`. The default systemd `PATH` already includes `/usr/local/bin` so no drop-in unit is needed when installed `--global` |
 | OpenVAS plugin: `gvm-cli exit 1: …deprecated 'Auth' section… EOF` | You have `gvm-tools 25.x` whose `[Auth]` config-file section is silently ignored. `pipx install --global gvm-tools` pulls `26.x`, which the plugin uses correctly (credentials via `--gmp-username/--gmp-password` flags) |
+| Service fails to start, `systemctl status` shows `status=226/NAMESPACE` | Running inside an **unprivileged Proxmox LXC container** (or similar): the unit's namespace-based hardening can't create mount namespaces. See [Proxmox / LXC: service fails with 226/NAMESPACE](#proxmox--lxc-service-fails-with-226namespace) below |
+
+### Proxmox / LXC: service fails with 226/NAMESPACE
+
+On a normal VM (KVM) or bare metal the shipped unit works as-is. Inside an
+**unprivileged LXC container** (e.g. a Proxmox CT) the service fails right after
+start and `systemctl status sentinelcore` shows:
+
+```
+Process: … ExecStart=…/vulnerability-manager (code=exited, status=226/NAMESPACE)
+ Main PID: … (code=exited, status=226/NAMESPACE)
+```
+
+Cause: the unit hardening (`PrivateTmp`, `ProtectSystem=full`, `ProtectHome`,
+`ReadWritePaths`) needs **mount namespaces**, which an unprivileged container is
+not allowed to create. It is not a SentinelCore bug.
+
+Fix — relax those directives **only in the container** with a drop-in override
+(the shipped unit, and therefore every VM install, keeps the full hardening):
+
+```bash
+sudo mkdir -p /etc/systemd/system/sentinelcore.service.d
+sudo tee /etc/systemd/system/sentinelcore.service.d/override.conf >/dev/null <<'EOF'
+[Service]
+# Namespace-based sandboxing is unavailable in unprivileged LXC containers.
+# Disable it ONLY here; on a KVM VM keep the original hardening.
+PrivateTmp=false
+ProtectSystem=false
+ProtectHome=false
+ReadWritePaths=
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart sentinelcore
+sudo systemctl status sentinelcore --no-pager   # expect: active (running)
+curl -sk https://localhost/api/health && echo    # expect: {"status":"healthy", …}
+```
+
+For a production deployment prefer a full **KVM VM** (or a privileged container):
+there the hardening applies and no override is needed.
