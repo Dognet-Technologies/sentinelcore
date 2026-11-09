@@ -6,17 +6,28 @@
 
 Track. Prioritize. Remediate. — across every asset on your network, with the audit trail your auditors expect.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
 [![Axum](https://img.shields.io/badge/Axum-0.6-blueviolet.svg)](https://github.com/tokio-rs/axum)
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
-[![Version](https://img.shields.io/badge/version-2.0.1-success.svg)]()
+[![Version](https://img.shields.io/badge/version-2.1.0-success.svg)]()
 
 </div>
 
 > **Stability disclaimer.** SentinelCore is in **beta**. Core flows are stable on a single-host deployment with a dedicated PostgreSQL instance. Multi-tenant, HA, and containerized deployments are not yet supported. Use the issue tracker for production blockers.
+
+---
+
+## Editions — Community and Pro
+
+SentinelCore ships in two editions that share the same codebase and UI:
+
+- **Community** — free and open source (**AGPL-3.0**, this repository). The full workflow (discover → import → risk → assign → remediate → report), capped at **15 managed hosts**. Hosts beyond the cap stay visible but are not managed (no vulnerability import, no plans).
+- **Pro** — licensed. Raises the host cap in tiers (45, 135, 405, …) and adds Pro-only features such as the **topology minimap** and **per-environment counting** (production / testing / pre-production) where the environment **modulates the risk score**. A single licence covers the whole **SentinelSuite** (SentinelCore Pro and CyberShepherd). Pro lives in a separate private repository and builds on top of this one via open-core hooks.
+
+The running edition is shown top-left in the UI (`SentinelCore COMMUNITY` / `SentinelCore PRO`). This repository is the **Community** edition; features that need a licence are marked **(Pro)** in the docs.
 
 ---
 
@@ -545,7 +556,7 @@ Two things that will save us all time:
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+**AGPL-3.0** (Community edition) — see [LICENSE](LICENSE). The Pro edition is proprietary and distributed separately under a commercial licence.
 
 ---
 
