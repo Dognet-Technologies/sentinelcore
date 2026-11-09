@@ -47,3 +47,9 @@ Il timeout di inattività è impostato per ogni utente in Impostazioni → Sicur
 
 **Un host non mostra l'hostname, solo l'indirizzo IP.**
 In reti virtuali o dietro NAT nessun protocollo di risoluzione (DNS inverso, mDNS, NetBIOS) risponde, quindi il nome non è recuperabile dalla scansione. Puoi impostarlo a mano dalla scheda *System Information* dell'host. Nelle reti reali, con DNS inverso o NetBIOS attivi, il nome viene in genere recuperato da solo.
+
+**Un host è segnato come "oltre licenza": cosa significa?**
+L'edizione Community gestisce fino a 15 host; i 15 più vecchi restano gestiti, gli host in più diventano «oltre licenza» — visibili e contati, ma senza importazione di vulnerabilità né inserimento nei piani. Basta scendere sotto i 15 host (eliminandone qualcuno) perché tornino gestiti, oppure passare all'edizione Pro, che alza il limite. Lo stato si ricalcola da solo, senza riavviare nulla. Vedi "Limite di host e stato «oltre licenza»" nel capitolo 7.
+
+**Che differenza c'è tra l'edizione Community e la Pro?**
+La Community è gratuita e open source, completa nel flusso di lavoro, con un tetto di 15 host. La Pro è a licenza: alza il tetto a scaglioni, conta gli host per ambiente (produzione / testing / pre-produzione) e aggiunge funzioni come la minimappa della topologia e l'ambiente che modula il rischio. L'edizione in uso è indicata in alto a sinistra. Vedi "Edizioni: Community e Pro" nell'introduzione.

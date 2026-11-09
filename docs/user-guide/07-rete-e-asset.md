@@ -22,12 +22,14 @@ La pagina **Topologia di rete** è una mappa interattiva dei dispositivi. Team L
 | Spostare un host | trascinalo; se fa parte di una selezione si muove **l'intera selezione**, mantenendo le distanze |
 | Selezionare più host | trascina un riquadro sullo sfondo vuoto, oppure `Ctrl`+clic sui singoli host; `Esc` annulla la selezione |
 | Zoom | `Ctrl`+rotellina (centrato sul puntatore) o i pulsanti lente nella barra |
-| Scorrere la mappa | tasto centrale del mouse trascinando (chi può solo consultare la mappa scorre trascinando lo sfondo) |
+| Scorrere la mappa | tasto centrale del mouse trascinando (chi può solo consultare la mappa scorre trascinando lo sfondo), oppure le **frecce** direzionali della tastiera |
 | Inquadrare tutto | pulsante **Fit**: adatta zoom e posizione a tutto ciò che è visibile nella finestra, senza ingrandire troppo |
 | Salvare la disposizione | pulsante **Salva** nella barra: si accende quando c'è qualcosa da salvare |
 | Schermo intero | pulsante in alto a destra; menu e finestre restano visibili anche a schermo intero |
 
-I nodi non possono finire sotto l'intestazione o i pannelli che stanno sopra la mappa: c'è un'area sicura in alto e a sinistra, e un host trascinato si ferma al bordo. Le disposizioni salvate in versioni precedenti che avevano nodi troppo in alto vengono abbassate automaticamente all'apertura, senza segnarle come modificate.
+I nodi non possono finire sotto l'intestazione o i pannelli che stanno sopra la mappa: c'è un'area sicura in alto e a sinistra, e un host trascinato si ferma al bordo. Le disposizioni salvate in versioni precedenti che avevano nodi troppo in alto vengono abbassate automaticamente all'apertura, senza segnarle come modificate. Sulle reti grandi la mappa si **apre già centrata** sugli host, così non devi cercarli.
+
+**(Pro)** L'edizione Pro mostra in alto a destra una **minimappa**: una vista in miniatura dell'intera rete con un rettangolo che indica la porzione visibile. Cliccando o **trascinando il rettangolo** ci si sposta rapidamente — molto utile quando gli host sono troppi per stare tutti nella finestra.
 
 Con il **tasto destro** su uno o più host si apre il menu dei dispositivi: dettaglio, **nascondi icona** (l'host resta nel sistema, sparisce solo dalla mappa; il pulsante con l'occhio li mostra di nuovo), **colore** del nodo, assegnazione e altre azioni.
 
@@ -78,6 +80,12 @@ Da qui puoi:
 - **aggiungere gli host selezionati a un piano di remediation in bozza** (tasto destro → *Aggiungi al piano di remediation (bozza)*, vedi capitolo 9);
 - eliminare in blocco dispositivi non più rilevanti.
 
+### Limite di host e stato «oltre licenza»
+
+L'edizione **Community** gestisce fino a **15 host**. Quando ne scopri o ne crei di più, i 15 **più vecchi** (per data di prima scoperta) restano pienamente gestiti; gli altri passano in stato **«oltre licenza»**: restano **visibili e contati** nelle liste e nella mappa — così sai che esistono — ma **non vengono gestiti**, cioè non importano vulnerabilità e non entrano nei piani di remediation. Nella tabella Host la riga mostra l'indicatore **Oltre licenza**.
+
+Il limite si applica **da solo**: scoprendo nuovi host o eliminandone, lo stato «oltre licenza» si ricalcola senza bisogno di riavviare nulla. Per gestirne di più serve l'edizione **(Pro)**, che alza il tetto a scaglioni e conta gli host **per ambiente** (produzione, testing, pre-produzione) separatamente.
+
 ### Il dettaglio di un host: la scheda "RBRE & Compliance"
 
 Aprendo il dettaglio di un host, nella scheda **System Configuration** trovi **RBRE & Compliance** (RBRE = Risk-Based Remediation Engine; il nome resta in inglese anche con l'interfaccia in italiano). È divisa in riquadri, e la differenza tra l'uno e l'altro è netta:
@@ -111,6 +119,8 @@ Di solito gli host sono asset **in produzione**, ma può esistere una copia dell
 - Modifica e salvataggio seguono le stesse regole degli altri dati del dispositivo (Amministratore e Team Leader del team dell'host; un Utente solo con l'override di modifica diretta, vedi capitolo 4).
 
 È un'informazione **solo organizzativa**: oggi non entra in nessun calcolo (né nel punteggio di rischio né nei piani di remediation) e non avvia nessuna azione sul clone. È predisposta perché in futuro venga **esportata verso le integrazioni tra gli host** della suite.
+
+> **(Pro)** Nell'edizione Pro testing e pre-produzione diventano **ambienti con un proprio conteggio** di host (ciascuno con il suo tetto, in base allo scaglione di licenza) e l'ambiente **modula il punteggio di rischio**: produzione a peso pieno, pre-produzione ridotto, testing molto ridotto. Nell'edizione Community l'informazione resta solo organizzativa, come descritto qui sopra.
 
 ### Il riepilogo remediation di un host
 

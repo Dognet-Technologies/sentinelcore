@@ -38,6 +38,19 @@ Rispetto alla 1.2.0, la 2.0.0 porta soprattutto questi cambiamenti (i dettagli s
 - **Temi con contrasto verificato** — tutti gli 11 temi rispettano i livelli di leggibilità WCAG AA per testi e colori di gravità (capitolo 4).
 - **Release firmate** — i pacchetti e le immagini VM sono accompagnati da checksum e firma verificabili (capitolo 1).
 
+## Edizioni: Community e Pro
+
+SentinelCore è distribuito in due edizioni che condividono lo stesso codice di base e la stessa interfaccia:
+
+- **Community** — gratuita e open source (licenza AGPL). Include l'intero flusso operativo (scoperta, importazione, punteggio di rischio, assegnazione, piani di remediation, report) ed è limitata a **15 host** gestiti.
+- **Pro** — a licenza. Alza il tetto degli host a scaglioni (il primo porta a 45 host complessivi — 15 per ambiente — poi 135, 405 e oltre) e aggiunge alcune funzioni esclusive, segnalate in questo manuale con l'etichetta **(Pro)**:
+  - la **minimappa** della mappa di topologia, comoda sulle reti grandi;
+  - **limiti e conteggio per ambiente** — produzione, testing e pre-produzione contati separatamente — con l'**ambiente che modula il punteggio di rischio**: lo stesso problema pesa di più in produzione che in testing.
+
+  Una sola licenza vale per **tutta la suite SentinelSuite** (SentinelCore Pro e CyberShepherd), con gli stessi limiti di asset.
+
+In alto a sinistra l'interfaccia indica sempre l'**edizione in uso** (`SentinelCore COMMUNITY` o `SentinelCore PRO`) e il numero di versione. Questo manuale descrive l'edizione **Community**: dove una funzione richiede la licenza lo trovi scritto **(Pro)**.
+
 ## Cosa fa SentinelCore
 
 - **Network Discovery** — scansione di rete integrata (basata su nmap) con profili configurabili, pianificazione ricorrente e mappa di topologia interattiva degli host scoperti.
