@@ -88,6 +88,24 @@ mkdir -p "$APP/migrations"; cp -a "$PKG_DIR/migrations/." "$APP/migrations/"
 # ── 4. PostgreSQL: user + db (password per-istanza) ─────────────────────────
 log "4/9 PostgreSQL: utente e database"
 systemctl enable --now postgresql >/dev/null 2>&1 || true
+# Su alcune distro (es. Kali) il meta-servizio `postgresql` resta "active"
+# anche con il cluster `postgresql@<ver>-main` NON avviato: senza questo i passi
+# successivi (CREATE ROLE, migration su 127.0.0.1:5432) fallivano in modo
+# criptico. Avvia esplicitamente ogni cluster "down" e attendi che sia pronto.
+if command -v pg_lsclusters >/dev/null 2>&1; then
+  pg_lsclusters -h 2>/dev/null | awk '$4=="down"{print $1, $2}' | while read -r PGVER PGCLU; do
+    pg_ctlcluster "$PGVER" "$PGCLU" start >/dev/null 2>&1 || true
+  done
+fi
+for _ in $(seq 1 20); do
+  pg_isready -h 127.0.0.1 -p 5432 -q 2>/dev/null && break
+  sleep 1
+done
+if ! pg_isready -h 127.0.0.1 -p 5432 -q 2>/dev/null; then
+  echo "ERRORE: PostgreSQL non è in ascolto su 127.0.0.1:5432. Avvialo e riprova:"
+  echo "        sudo systemctl start postgresql  (o: sudo pg_ctlcluster <ver> main start)"
+  exit 1
+fi
 DB_EXISTS="$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || true)"
 if [ "$DB_EXISTS" = "1" ] && [ "$FORCE" -ne 1 ]; then
   echo "ERRORE: il database '$DB_NAME' esiste gia'. Installer pensato per host pulito."
@@ -153,7 +171,15 @@ rm -f /etc/nginx/sites-enabled/default
 # discovery: nmap/arp-scan passano da un wrapper root-only con allowlist di
 # opzioni; il sudoers NOPASSWD autorizza solo il wrapper, non i binari.
 bash "$PKG_DIR/templates/install-scan-privileges.sh" "$SVC_USER" "$PKG_DIR/templates/sentinelcore-scan"
-nginx -t >/dev/null 2>&1 && systemctl reload nginx
+# nginx potrebbe non essere avviato (es. Kali non auto-avvia i servizi dopo
+# l'install): `reload` su un servizio inattivo falliva ("is not active, cannot
+# reload") e interrompeva l'installazione. Abilita+avvia, poi reload-or-restart.
+if nginx -t >/dev/null 2>&1; then
+  systemctl enable nginx >/dev/null 2>&1 || true
+  systemctl reload-or-restart nginx >/dev/null 2>&1 || systemctl restart nginx
+else
+  echo "ATTENZIONE: configurazione nginx non valida (nginx -t). Verifica /etc/nginx."
+fi
 systemctl daemon-reload
 systemctl enable --now sentinelcore >/dev/null 2>&1
 
