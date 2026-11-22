@@ -1,0 +1,179 @@
+#!/bin/sh
+# sentinelcore-scan - unico punto d'ingresso PRIVILEGIATO per nmap / arp-scan.
+#
+# Il servizio SentinelCore gira come utente non-root e lancia le scansioni
+# di rete tramite:   sudo -n /usr/local/libexec/sentinelcore/scan <tool> ARGS
+# Il sudoers autorizza SOLO questo script (non i binari): qui si decide
+# cosa puo' davvero girare come root. Regole:
+#   - tool: solo "nmap" o "arp-scan", con path assoluto fisso;
+#   - opzioni: allowlist esplicita (niente file di input/output, niente
+#     script NSE, niente datadir/proxy...); tutto il resto e' rifiutato;
+#   - target: solo caratteri di IP/CIDR/range/hostname, mai con '-' iniziale,
+#     sempre dopo il separatore "--";
+#   - ambiente ripulito prima dell'exec.
+#
+# Uso:   scan [--check] <nmap|arp-scan> ARGS...
+#   --check  valida gli argomenti ed esce (0 = ok) senza eseguire nulla.
+#
+# Deve essere di proprieta' di root e NON scrivibile dall'utente di
+# servizio: altrimenti l'allowlist si aggira sostituendo lo script.
+
+set -eu
+
+MAX_TARGETS=64
+MAX_TARGET_LEN=253
+
+die() {
+    echo "sentinelcore-scan: $*" >&2
+    exit 64
+}
+
+# Valore di un'opzione (porte, tempi, numeri): niente spazi ne' metacaratteri.
+valid_value() {
+    case "$1" in
+        "" | *[!0-9A-Za-z,:._-]*) return 1 ;;
+    esac
+    return 0
+}
+
+valid_iface() {
+    case "$1" in
+        "" | *[!0-9A-Za-z._-]*) return 1 ;;
+    esac
+    [ "${#1}" -le 15 ]
+}
+
+# Target: IP, CIDR, range a ottetti, hostname. Mai un '-' iniziale.
+valid_target() {
+    case "$1" in
+        "" | -* | *..*) return 1 ;;
+        *[!0-9A-Za-z.:/*_-]*) return 1 ;;
+    esac
+    # '/' solo come maschera: "ip/24" oppure "ip/255.255.255.0".
+    case "$1" in
+        */*)
+            case "${1%%/*}" in "") return 1 ;; esac
+            case "${1#*/}" in "" | *[!0-9.]*) return 1 ;; esac
+            ;;
+    esac
+    [ "${#1}" -le "$MAX_TARGET_LEN" ]
+}
+
+check_targets() {
+    [ "$#" -ge 1 ] || die "nessun target"
+    [ "$#" -le "$MAX_TARGETS" ] || die "troppi target (max $MAX_TARGETS)"
+    for t in "$@"; do
+        valid_target "$t" || die "target non valido: $t"
+    done
+}
+
+check_nmap() {
+    while [ "$#" -gt 0 ]; do
+        a=$1
+        shift
+        case "$a" in
+            --)
+                check_targets "$@"
+                return 0
+                ;;
+            # flag senza valore
+            -sS | -sT | -sU | -sV | -sn | -Pn | -PR | -PE | -PP | -PM | -n | -F | -O | -6 | \
+                -v | -vv | -vvv | --open | --reason | --traceroute | \
+                --osscan-limit | --osscan-guess)
+                ;;
+            -T[0-5]) ;;
+            # output XML su stdout: e' l'unico output consentito
+            -oX)
+                [ "$#" -ge 1 ] && [ "$1" = "-" ] || die "-oX ammesso solo come '-oX -'"
+                shift
+                ;;
+            # porte, valore attaccato ("-p-", "-p22,80")
+            -p?*)
+                valid_value "${a#-p}" || die "valore non valido: $a"
+                ;;
+            # ping con porte ("-PS22", "-PA80,443")
+            -PS?* | -PA?* | -PU?* | -PY?*)
+                valid_value "${a#-P?}" || die "valore non valido: $a"
+                ;;
+            # opzioni con valore attaccato (--opt=valore)
+            --top-ports=* | --max-retries=* | --host-timeout=* | --min-rate=* | --max-rate=* | \
+                --version-intensity=* | --scan-delay=* | --max-scan-delay=* | \
+                --min-rtt-timeout=* | --max-rtt-timeout=* | --initial-rtt-timeout=* | \
+                --min-hostgroup=* | --max-hostgroup=*)
+                valid_value "${a#*=}" || die "valore non valido: $a"
+                ;;
+            # opzioni con valore separato
+            -p | --top-ports | --max-retries | --host-timeout | --min-rate | --max-rate | \
+                --version-intensity)
+                [ "$#" -ge 1 ] || die "manca il valore per $a"
+                valid_value "$1" || die "valore non valido per $a: $1"
+                shift
+                ;;
+            *)
+                die "opzione nmap non consentita: $a"
+                ;;
+        esac
+    done
+    die "manca il separatore '--' prima dei target"
+}
+
+check_arp_scan() {
+    while [ "$#" -gt 0 ]; do
+        a=$1
+        shift
+        case "$a" in
+            --)
+                check_targets "$@"
+                return 0
+                ;;
+            --interface=*)
+                valid_iface "${a#*=}" || die "interfaccia non valida: $a"
+                ;;
+            --retry=* | --timeout=*)
+                valid_value "${a#*=}" || die "valore non valido: $a"
+                ;;
+            --localnet)
+                # nessun target: consentito solo se e' l'ultimo argomento prima
+                # della fine (arp-scan --localnet non prende target).
+                ;;
+            *)
+                die "opzione arp-scan non consentita: $a"
+                ;;
+        esac
+    done
+    # --localnet senza "--" e' valido; senza --localnet servono target.
+    return 0
+}
+
+CHECK_ONLY=0
+if [ "${1:-}" = "--check" ]; then
+    CHECK_ONLY=1
+    shift
+fi
+
+[ "$#" -ge 1 ] || die "uso: scan [--check] <nmap|arp-scan> ARGS..."
+tool=$1
+shift
+
+case "$tool" in
+    nmap)
+        check_nmap "$@"
+        bin=/usr/bin/nmap
+        ;;
+    arp-scan)
+        check_arp_scan "$@"
+        # senza --localnet e senza "--" non c'e' nessun target: rifiuta.
+        case " $* " in
+            *" -- "* | *" --localnet "*) ;;
+            *) die "arp-scan: servono target dopo '--' oppure --localnet" ;;
+        esac
+        bin=/usr/sbin/arp-scan
+        ;;
+    *)
+        die "tool non consentito: $tool"
+        ;;
+esac
+
+[ "$CHECK_ONLY" -eq 1 ] && exit 0
+
+exec env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin LANG=C "$bin" "$@"

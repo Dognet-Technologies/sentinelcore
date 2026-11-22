@@ -1,156 +1,327 @@
 name: Release
 
+# Al push di un tag vX.Y.Z[-suffisso] compila, firma e prepara (come BOZZA) la
+# release con tutti gli asset: tarball installabile, VM qcow2/OVA, SHA256SUMS
+# firmato con GPG e chiave pubblica. Nessun upload manuale.
+#
+# Flusso:  verify -> package -> vm -> release (bozza)
+# Se un job fallisce: "Re-run failed jobs" dall'interfaccia Actions riusa gli
+# artifact gia' prodotti (es. rilancia solo `vm` e poi `release`).
+#
+# Secrets richiesti (Settings -> Secrets and variables -> Actions):
+#   GPG_PRIVATE_KEY   chiave privata di rilascio, ASCII-armored
+#   GPG_PASSPHRASE    passphrase della chiave
+
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag esistente da (ri)costruire, es. v1.2.1'
+        required: true
+        type: string
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  # Mai interpolare direttamente nei run: passa sempre da $TAG
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
-  build-backend:
-    name: Build Rust Backend
+  verify:
+    name: Verifica tag, versioni, CI e secrets
     runs-on: ubuntu-latest
-    container:
-      image: debian:bookworm
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
-      - name: Install system deps
+      - name: Tag coerente con le versioni nel codice
+        run: packaging/check-version.sh "$TAG"
+
+      - name: CI verde sul commit taggato
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA="$(git rev-parse "${TAG}^{commit}")"
+          OK="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml \
+                  --commit "$SHA" --status success --json databaseId --jq 'length')"
+          if [ "${OK:-0}" -lt 1 ]; then
+            echo "::error::Nessuna esecuzione 'CI' riuscita sul commit $SHA. Fai passare la CI prima di taggare."
+            exit 1
+          fi
+          echo "CI verde sul commit $SHA"
+
+      - name: Secrets di firma presenti
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          [ -n "$GPG_PRIVATE_KEY" ] && [ -n "$GPG_PASSPHRASE" ] || {
+            echo "::error::Mancano i secrets GPG_PRIVATE_KEY / GPG_PASSPHRASE: una release non firmata non viene prodotta."
+            exit 1
+          }
+
+  package:
+    name: Compila e impacchetta (tarball firmato)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Si compila sulla Debian su cui il prodotto e' validato (13, trixie): il
+    # binario gira solo su glibc >= di quella di build. Codename esplicito e non
+    # `stable`: al rilascio della 14 si cambia qui di proposito, dopo averla provata.
+    container:
+      image: debian:trixie
+    steps:
+      - name: Dipendenze di sistema
         run: |
           apt-get update
-          apt-get install -y build-essential pkg-config libssl-dev libpq-dev curl ca-certificates git
+          apt-get install -y --no-install-recommends \
+            build-essential pkg-config libssl-dev libpq-dev curl ca-certificates \
+            git gnupg tar gzip coreutils
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Setup Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             vulnerability-manager/target
-          key: ${{ runner.os }}-release-cargo-${{ hashFiles('vulnerability-manager/Cargo.lock') }}
+          key: release-trixie-cargo-${{ hashFiles('vulnerability-manager/Cargo.lock') }}
 
-      - name: Build release binary
-        working-directory: vulnerability-manager
+      - name: Importa chiave GPG di rilascio
         env:
-          SQLX_OFFLINE: "true"
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          . "$HOME/.cargo/env"
-          cargo build --release
-          strip target/release/vulnerability-manager
+          printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format long | grep -E '^(sec|ssb)|^ +[0-9A-F]{40}'
 
-      - name: Upload backend artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sentinelcore-backend-linux-amd64
-          path: vulnerability-manager/target/release/vulnerability-manager
-          retention-days: 1
-
-  build-frontend:
-    name: Build React Frontend
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: vulnerability-manager-frontend/package-lock.json
-
-      - name: Install and build
-        working-directory: vulnerability-manager-frontend
+      - name: Build + tarball + checksum + firma
         env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          REQUIRE_SIGNATURE: "1"
           CI: "false"
+        run: packaging/build-release.sh "$TAG"
+
+      - name: Verifica dell'output prodotto
         run: |
-          npm ci
-          npm run build
+          gpg --armor --export > dist/sentinelcore-release.pub.asc
+          cd dist
+          sha256sum -c "sentinelcore-${TAG}-linux-x86_64.tar.gz.sha256"
+          gpg --verify "sentinelcore-${TAG}-linux-x86_64.tar.gz.asc" \
+                       "sentinelcore-${TAG}-linux-x86_64.tar.gz"
 
-      - name: Archive frontend build
-        run: tar -czf sentinelcore-frontend.tar.gz -C vulnerability-manager-frontend/build .
-
-      - name: Upload frontend artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload tarball e firma
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: sentinelcore-frontend
-          path: sentinelcore-frontend.tar.gz
-          retention-days: 1
+          name: sentinelcore-tarball
+          path: |
+            dist/sentinelcore-*-linux-x86_64.tar.gz
+            dist/sentinelcore-*-linux-x86_64.tar.gz.asc
+            dist/sentinelcore-release.pub.asc
+          if-no-files-found: error
+          retention-days: 7
 
-  release:
-    name: Create GitHub Release
-    needs: [ build-backend, build-frontend ]
+  vm:
+    name: Build VM appliance (qcow2 + OVA)
+    needs: package
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref_name }}
 
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Scarica il tarball
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
+          name: sentinelcore-tarball
           path: dist/
 
-      - name: Rename backend binary
+      - name: Libera spazio sul runner
         run: |
-          mv dist/sentinelcore-backend-linux-amd64/vulnerability-manager \
-             dist/sentinelcore-${{ steps.version.outputs.VERSION }}-linux-amd64
-          mv dist/sentinelcore-frontend/sentinelcore-frontend.tar.gz \
-             dist/sentinelcore-${{ steps.version.outputs.VERSION }}-frontend.tar.gz
-          chmod +x dist/sentinelcore-${{ steps.version.outputs.VERSION }}-linux-amd64
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
 
-      - name: Generate changelog
-        id: changelog
+      - name: Dipendenze (qemu, cloud-init, VirtualBox)
         run: |
-          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${GITHUB_REF_NAME}$" | head -1)
-          if [ -n "$PREV_TAG" ]; then
-            CHANGES=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s (%h)" --no-merges)
-          else
-            CHANGES=$(git log --pretty=format:"- %s (%h)" --no-merges | head -30)
-          fi
-          echo "CHANGES<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            qemu-system-x86 qemu-utils cloud-image-utils genisoimage wget python3 virtualbox
+          command -v VBoxManage >/dev/null || { echo "::error::VBoxManage non disponibile"; exit 1; }
+          VBoxManage --version
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Build VM
+        run: |
+          # Il tarball e' gia' in dist/ (scaricato sopra, stesso nome di build-release.sh)
+          # Nome file atteso: sentinelcore-<TAG>-linux-x86_64.tar.gz
+          ls -l dist/
+          packaging/build-vm.sh "$TAG"
+
+      - name: Upload VM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: SentinelCore v${{ steps.version.outputs.VERSION }}
-          body: |
-            ## What's Changed
+          name: sentinelcore-vm
+          path: |
+            dist/sentinelcore-*-linux-x86_64.qcow2
+            dist/sentinelcore-*-linux-x86_64.ova
+          if-no-files-found: error
+          retention-days: 7
 
-            ${{ steps.changelog.outputs.CHANGES }}
+      - name: Upload log console VM (debug)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentinelcore-vm-console-log
+          path: dist/build-vm-console.log
+          if-no-files-found: ignore
+          retention-days: 7
 
-            ## Artifacts
+  release:
+    name: Firma checksum e crea la bozza di release
+    needs: [ package, vm ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout (storia completa per il changelog)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
 
-            | File | Description |
-            |------|-------------|
-            | `sentinelcore-*-linux-amd64` | Backend binary (Debian/Ubuntu x86_64) |
-            | `sentinelcore-*-frontend.tar.gz` | Frontend build (serve with nginx/caddy) |
+      - name: Scarica gli asset
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: sentinelcore-{tarball,vm}
+          merge-multiple: true
+          path: dist/
 
-            ## Installation
+      - name: SHA256SUMS firmato
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          cd dist
+          ls -l
+          # Checksum di tutti gli asset binari (tarball + VM), non delle firme
+          sha256sum "sentinelcore-${TAG}-linux-x86_64.tar.gz" \
+                    "sentinelcore-${TAG}-linux-x86_64.qcow2" \
+                    "sentinelcore-${TAG}-linux-x86_64.ova" > SHA256SUMS
+          cat SHA256SUMS
 
-            ```bash
-            chmod +x sentinelcore-*-linux-amd64
-            ./sentinelcore-*-linux-amd64
-            ```
-          files: |
-            dist/sentinelcore-${{ steps.version.outputs.VERSION }}-linux-amd64
-            dist/sentinelcore-${{ steps.version.outputs.VERSION }}-frontend.tar.gz
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          generate_release_notes: true
+          printf '%s\n' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 \
+              --armor --detach-sign --output SHA256SUMS.asc SHA256SUMS 3<<<"$GPG_PASSPHRASE"
+
+          # Verifica indipendente con keyring pulito e solo la chiave pubblica
+          VERIFY_HOME="$(mktemp -d)"; chmod 700 "$VERIFY_HOME"
+          GNUPGHOME="$VERIFY_HOME" gpg --batch --import sentinelcore-release.pub.asc
+          GNUPGHOME="$VERIFY_HOME" gpg --verify SHA256SUMS.asc SHA256SUMS
+          sha256sum -c SHA256SUMS
+          echo "FPR=$(gpg --batch --with-colons --fingerprint | awk -F: '/^fpr:/ {print $10; exit}')" >> "$GITHUB_ENV"
+
+      - name: Note di rilascio
+        run: |
+          set -euo pipefail
+          PREV="$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)"
+          if [ -n "$PREV" ]; then
+            git log "${PREV}..${TAG}" --pretty=format:"- %s (%h)" --no-merges > CHANGES.md
+          else
+            git log -n 30 "${TAG}" --pretty=format:"- %s (%h)" --no-merges > CHANGES.md
+          fi
+          {
+            echo "## Cosa cambia"
+            echo
+            cat CHANGES.md
+            echo
+            cat <<'EOF'
+          ## Asset
+
+          | File | Descrizione |
+          |------|-------------|
+          | `sentinelcore-__TAG__-linux-x86_64.tar.gz` | Pacchetto installabile (binario, frontend, migration, `install.sh`, `upgrade.sh`) per Debian 13 |
+          | `sentinelcore-__TAG__-linux-x86_64.qcow2` | VM appliance per KVM / Proxmox |
+          | `sentinelcore-__TAG__-linux-x86_64.ova` | VM appliance per VirtualBox / VMware |
+          | `SHA256SUMS` / `SHA256SUMS.asc` | Checksum di tutti gli asset e firma GPG |
+          | `sentinelcore-__TAG__-linux-x86_64.tar.gz.asc` | Firma GPG separata del tarball |
+          | `sentinelcore-release.pub.asc` | Chiave pubblica di rilascio |
+
+          ## Verifica degli asset
+
+          Impronta (fingerprint) della chiave di rilascio: `__FPR__`
+
+          ```bash
+          gpg --import sentinelcore-release.pub.asc
+          gpg --fingerprint | grep -A1 pub        # confronta con l'impronta qui sopra
+          gpg --verify SHA256SUMS.asc SHA256SUMS
+          sha256sum -c SHA256SUMS --ignore-missing
+          ```
+
+          ## Installazione
+
+          ```bash
+          tar xzf sentinelcore-__TAG__-linux-x86_64.tar.gz
+          cd sentinelcore-__TAG__-linux-x86_64
+          sudo ./install.sh
+          ```
+          EOF
+          } > NOTES.md
+          sed -i -e "s/__TAG__/${TAG}/g" -e "s/__FPR__/${FPR}/g" NOTES.md
+
+      - name: Crea la bozza di release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Rilancio: le bozze non sono raggiungibili per tag, quindi si cerca
+          # nella lista. Si sostituisce solo una bozza, mai una release pubblicata.
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq '.[] | select(.tag_name == env.TAG) | "\(.id) \(.draft)"' |
+          while read -r ID DRAFT; do
+            if [ "$DRAFT" != "true" ]; then
+              echo "::error::La release $TAG e' gia' pubblicata: non la sovrascrivo."
+              exit 1
+            fi
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${ID}"
+          done
+          PRE=""
+          case "$TAG" in *-*) PRE="--prerelease" ;; esac
+          gh release create "$TAG" --draft --verify-tag $PRE \
+            --title "SentinelCore ${TAG}" \
+            --notes-file NOTES.md \
+            "dist/sentinelcore-${TAG}-linux-x86_64.tar.gz" \
+            "dist/sentinelcore-${TAG}-linux-x86_64.tar.gz.asc" \
+            "dist/sentinelcore-${TAG}-linux-x86_64.qcow2" \
+            "dist/sentinelcore-${TAG}-linux-x86_64.ova" \
+            dist/SHA256SUMS dist/SHA256SUMS.asc dist/sentinelcore-release.pub.asc
+          echo "Bozza creata: controlla e pubblica da GitHub -> Releases"

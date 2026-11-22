@@ -1,0 +1,12 @@
+Package: sentinelcore
+Version: __VERSION__
+Architecture: amd64
+Maintainer: Dognet Technologies <info@dognet.tech>
+Section: net
+Priority: optional
+Homepage: https://dognet.tech
+Depends: postgresql, nginx, nmap, arp-scan, ca-certificates, curl, openssl, libssl3t64, sudo, avahi-utils, samba-common-bin, iproute2
+Description: SentinelCore - Vulnerability Management Platform
+ Server SentinelCore della SentinelSuite: backend Rust e frontend React dietro
+ nginx. Il primo install crea database e configurazione, gli aggiornamenti
+ eseguono backup del database e migration.

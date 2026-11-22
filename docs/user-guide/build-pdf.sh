@@ -6,13 +6,21 @@
 #   sudo apt-get install -y pandoc
 #
 # Uso:  ./build-pdf.sh [versione]
-#       (versione default = "dev")
+#       (versione default = quella di vulnerability-manager-frontend/package.json)
+#
+# La versione e il mese in copertina si compilano da soli (segnaposto in _cover.html).
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
-VERSION="${1:-dev}"
+# Un solo posto per la versione: package.json del frontend (gia' allineato a Cargo.toml dal gate di release).
+PKG_VERSION="$(sed -n 's/^  "version": "\(.*\)",/\1/p' "$DIR/../../vulnerability-manager-frontend/package.json" | head -1)"
+VERSION="${1:-${PKG_VERSION:-dev}}"
+MESI=(Gennaio Febbraio Marzo Aprile Maggio Giugno Luglio Agosto Settembre Ottobre Novembre Dicembre)
+DATA="${MESI[$((10#$(date +%m) - 1))]} $(date +%Y)"
+COVER="$(mktemp --suffix=.html)"
+sed -e "s|{{VERSION}}|${VERSION}|g" -e "s|{{DATA}}|${DATA}|g" _cover.html > "$COVER"
 OUT_DIR="$DIR/../../dist"
 OUT_HTML="$(mktemp --suffix=.html)"
 OUT_PDF="$OUT_DIR/SentinelCore-Manuale-Utente-${VERSION}.pdf"
@@ -37,7 +45,7 @@ echo "▶ pandoc: capitoli → HTML"
 pandoc "${CHAPTERS[@]}" \
   --standalone --embed-resources --css=_manual.css \
   --toc --toc-depth=2 \
-  --include-before-body=_cover.html \
+  --include-before-body="$COVER" \
   --metadata title="SentinelCore — Manuale Utente" \
   --metadata toc-title="Indice" \
   -o "$OUT_HTML"
@@ -50,5 +58,5 @@ echo "▶ $CHROME_BIN: HTML → PDF"
   --print-to-pdf="$OUT_PDF" --no-pdf-header-footer \
   "file://$OUT_HTML"
 
-rm -f "$OUT_HTML"
+rm -f "$OUT_HTML" "$COVER"
 echo "▶ Fatto: $OUT_PDF"

@@ -1,10 +1,12 @@
 # 4. Configurazione
 
-Tutte le impostazioni di sistema si trovano in **Impostazioni** (visibile a tutti i ruoli, ma la maggior parte delle sezioni è modificabile solo da un Amministratore). Il menu laterale della pagina elenca le sezioni descritte qui sotto.
+Tutte le impostazioni di sistema si trovano in **Impostazioni** (visibile a tutti i ruoli, ma la maggior parte delle sezioni è modificabile solo da un Amministratore). Il menu laterale della pagina elenca le sezioni descritte qui sotto. Se apri una sezione riservata all'Amministratore senza averne i permessi, la pagina lo dice con un avviso esplicito invece di restare vuota o in caricamento.
 
 ## Preferenze
 
-Scelta del tema grafico dell'interfaccia (chiaro/scuro e varianti). È una preferenza personale, salvata per l'utente che l'ha impostata.
+Scelta del tema grafico dell'interfaccia: 11 temi, tra cui SentinelCore Professional Dark (predefinito), Dognet Professional e Dognet Black, i quattro temi Entuity (Light, Dark, Midnight Blue, Arctic Blue), e i temi Minimal, Modern Tech, Cyberpunk ed Enterprise. È una preferenza personale, salvata per l'utente che l'ha impostata.
+
+I colori di testi, pulsanti e livelli di gravità (Critical/High/Medium/Low) di ogni tema sono verificati per rispettare i rapporti di contrasto WCAG AA, quindi restano leggibili in qualsiasi tema, chiaro o scuro.
 
 ## Notifiche
 
@@ -19,7 +21,7 @@ Il canale **in-app** (la campanella in alto) è sempre attivo, indipendentemente
 **Eventi personali** (visibili a tutti i ruoli — riguardano il lavoro assegnato a te o al tuo team):
 
 - Ti viene assegnata una vulnerabilità (a te direttamente o al tuo team);
-- Il tuo team riceve un nuovo piano di remediation.
+- Il tuo team riceve un nuovo piano di remediation — un piano ancora in **bozza** non genera nessuna notifica: l'avviso parte quando il piano esce dalla bozza (diventa Attivo).
 
 **Eventi operativi** (visibili solo a Team Leader e Amministratore — riguardano la gestione del team/dell'istanza, non solo il tuo lavoro):
 
@@ -28,6 +30,8 @@ Il canale **in-app** (la campanella in alto) è sempre attivo, indipendentemente
 - Viene scoperto un nuovo host dal Network Discovery;
 - Una scansione di rete **periodica** (quella pianificata in Impostazioni → Network Discovery, non gli avvii manuali) è completata;
 - Uno o più host risultano offline in una scansione.
+
+Le **menzioni** (`@nomeutente` in un commento) generano invece sempre una notifica in-app, e solo per le persone citate: nessun altro membro del team viene avvisato.
 
 Ognuna di queste preferenze è indipendente dalle altre: puoi ad esempio ricevere email sulle vulnerabilità assegnate ma non sui report settimanali, o viceversa.
 
@@ -49,7 +53,9 @@ Dopo aver inserito i parametri, usa il pulsante **Testa connessione**: invia una
 ## Sicurezza
 
 - **Autenticazione a due fattori (2FA)** — attiva/disattiva il 2FA per il proprio account (vedi capitolo 2).
-- **Timeout sessione** — tempo di inattività (15 minuti, 30 minuti, 1 ora, 2 ore o 8 ore) dopo il quale la sessione scade automaticamente e viene richiesto un nuovo login. Si applica per utente, non globalmente.
+- **Timeout sessione** — tempo di inattività (15 minuti, 30 minuti, 1 ora, 2 ore o 8 ore) dopo il quale la sessione scade automaticamente e viene richiesto un nuovo login. Si applica per utente, non globalmente. L'inattività conta davvero anche con la pagina aperta: gli aggiornamenti automatici in background non mantengono viva la sessione, mentre l'uso reale (clic, tastiera) sì.
+- **Sessioni attive** — dal proprio profilo ciascuno può vedere e chiudere le proprie sessioni. Le sessioni di un utente vengono chiuse automaticamente quando la sua password cambia, quando l'account viene bloccato o eliminato.
+- **Protezioni dell'accesso** — i tentativi di login (e di conferma 2FA) sono limitati per indirizzo IP, per rallentare chi prova password a caso; un codice 2FA già usato non viene accettato una seconda volta.
 
 ## Server MCP (solo Amministratore)
 
@@ -70,7 +76,7 @@ Configura la scansione di rete automatica periodica (vedi anche capitolo 7):
 - **Auto-rescan** — abilita/disabilita la scansione ricorrente e ne imposta la frequenza (da ogni ora a ogni 2 settimane);
 - **Subnet di destinazione** — una o più subnet CIDR da scansionare (es. `192.168.1.0/24`); per subnet non direttamente raggiungibili serve una rotta statica configurata sul server;
 - **Opzioni nmap** — tipo di scansione (full/ARP/ping), timing (da T0 "paranoid" a T5 "insane"), porte TCP da controllare, numero di porte UDP top da controllare, rilevamento OS e rilevamento versione dei servizi;
-- **Modalità avanzata** — è possibile scrivere a mano gli argomenti nmap, per chi conosce lo strumento e vuole un controllo fine; l'anteprima del comando che verrà eseguito è sempre visibile prima di salvare.
+- **Modalità avanzata** — è possibile scrivere a mano gli argomenti nmap, per chi conosce lo strumento e vuole un controllo fine; l'anteprima del comando che verrà eseguito è sempre visibile prima di salvare. Per sicurezza le scansioni girano tramite un componente privilegiato dedicato che accetta solo un **elenco di opzioni consentite** e target validi (IP, CIDR, intervalli, nomi host): opzioni che leggono o scrivono file (come `-iL` o `-oN`) o script NSE vengono rifiutate, e un'opzione non ammessa produce un errore chiaro invece di una scansione parziale.
 
 ## Logging
 

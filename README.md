@@ -6,13 +6,13 @@
 
 Track. Prioritize. Remediate. — across every asset on your network, with the audit trail your auditors expect.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org/)
 [![Axum](https://img.shields.io/badge/Axum-0.6-blueviolet.svg)](https://github.com/tokio-rs/axum)
 [![React](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
-[![Version](https://img.shields.io/badge/version-1.2.0-success.svg)]()
+[![Version](https://img.shields.io/badge/version-2.1.0-success.svg)]()
 
 </div>
 
@@ -20,27 +20,67 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 ---
 
-## What v1.2.0 brings
+## Editions — Community and Pro
 
-The headline feature of the 1.1.0 → 1.2.0 line is a native **MCP (Model Context Protocol) server**, embedded directly in the backend — no external gateway, no translation layer. It shipped in two phases:
+SentinelCore ships in two editions that share the same codebase and UI:
 
-- **Phase 1 (read-only)** — an AI agent can query vulnerabilities, risk summaries, and asset state over `POST /api/mcp` (JSON-RPC 2.0), authenticated with a scoped API key.
-- **Phase 2 (read/write) — shipped in 1.2.0** — the server now exposes **write tools**: assign a vulnerability, update its status, accept risk, trigger a scan. Every write tool is gated by a **per-key scope guardrail**, so an agent's API key can be restricted to exactly the actions it's allowed to take.
+- **Community** — free and open source (**AGPL-3.0**, this repository). The full workflow (discover → import → risk → assign → remediate → report), capped at **15 managed hosts**. Hosts beyond the cap stay visible but are not managed (no vulnerability import, no plans).
+- **Pro** — licensed. Raises the host cap in tiers (45, 135, 405, …) and adds Pro-only features such as the **topology minimap** and **per-environment counting** (production / testing / pre-production) where the environment **modulates the risk score**. A single licence covers the whole **SentinelSuite** (SentinelCore Pro and CyberShepherd). Pro lives in a separate private repository and builds on top of this one via open-core hooks.
 
-Alongside MCP, this release line also brings a full **Network Topology restyle** and a chain of operational improvements pulled from real deployment friction:
+The running edition is shown top-left in the UI (`SentinelCore COMMUNITY` / `SentinelCore PRO`). This repository is the **Community** edition; features that need a licence are marked **(Pro)** in the docs.
 
-- **Hex/orb device nodes** with per-device-type colour and silhouette icons, link endpoint dots, subnet chips, and HUD overlays.
-- **Slide-in device preview panel** on icon click — the Overview content surfaces without a full navigation, with an "Apri dettaglio completo" button to go deeper.
-- **Inline pencil-per-card editing** on the System Configuration tab (location, owner, criticality, model, OS, …) — no separate management page.
-- **Live scan progress banner** with elapsed time, devices found, and current target — replacing the "did it start? did it die?" guesswork.
-- **Single source of truth for vuln counts** via `assets.network_device_id` — the network discovery pipeline and the scanner import pipeline now agree on the same device row.
-- **Network Ports tab** with aggregated open ports, detected services, and per-port vuln linkage.
-- **Configurable nmap discovery** in Settings: `scan_type`, timing template, port list, custom args — preview is a live nmap command string before save.
-- **Granular notification preferences** — per-channel, per-event opt-in/out instead of one global on/off switch.
-- **File logging system** with retention worker (7d / 500MB rotation, gzip in place), level and destination configurable from Settings.
-- **`sudo NOPASSWD` nmap wrapper** so the discovery worker can do `-sV -O -sU -p-` scans without running the whole service as root.
-- **CSRF middleware self-heal** so restarts don't 403 every in-flight browser session.
-- **VM appliance (qcow2 / OVA) first-boot fix** — the packaged appliance now boots reliably on first start.
+---
+
+## What v2.1.0 brings
+
+Available in the weekly build, not yet published as a release.
+
+**Scanner integrations**
+
+- **Native Tenable Nessus connector** — works with both Nessus Essentials and Professional (the edition is detected from `/server/properties`, nothing to choose); certified release **10.12.x**. Read-only REST client (API keys or username/password): it polls completed scan runs, exports them as `.nessus` and imports them through the same dedup pipeline as file uploads. Configured from *Plugins → Tenable Nessus → Configure* (migration 162). The `.nessus` parser now uses the real `host-ip`/FQDN, prefers CVSS v3, and keeps CWE and references.
+- **Nessus Essentials without exports** — Essentials Free refuses API exports, so the connector reads the same data (CVE, CWE, CVSS, solution, port, output) from the host and plugin detail endpoints. Professional keeps using `.nessus` exports and falls back automatically if an export is refused.
+- **Edition in the import history** — *Scanner imports* shows the detected edition (*Nessus Essentials*, *Nessus Professional*, ...) in the Scanner column (migration 163, `scanner_imports.scanner_label`).
+- **Sync now** — OpenVAS and Nessus can run an import immediately from their configuration dialog (`POST /api/plugins/:id/sync`, admin only), sharing a per-plugin lock with the background poller.
+
+**Notifications**
+
+- **Critical alerts work again** — since 2026-10-01 the worker stopped at the first critical vulnerability assigned to a person instead of a team, so no critical alert was sent at all. Alerts now reach the assigned team and/or the assigned person, with the same preferences (critical alerts, email, personal Slack). Already resolved or closed criticals never alert; unassigned ones wait up to 48 hours for an assignment.
+- **Auto-assignment notifies** — vulnerabilities assigned automatically (any severity) now notify like manual assignments: one summary per recipient per run, in-app, by email/personal Slack for users with *assignment* notifications on, and on the team's Slack/Telegram channel. The priority follows the most severe vulnerability in the summary.
+
+**Network**
+
+- **Topology zoom** — the map canvas now covers the whole visible area at any zoom level: networks at the edge are no longer cut off, the empty space around them can be selected, and the page no longer grows endlessly. On the dashboard the map has a fixed 1500 px height and scrolls inside.
+- **Subnet links as a star** — when a scan cannot find the gateway, hosts of the same /24 are linked to one hub (the `.1`, or the lowest IP) instead of to each other: 256 hosts now give 255 links instead of 32,640. Old full-mesh links are removed on the next scan of that network.
+- **Clones in other networks** — an enabled testing or pre-production clone now requires its internal IP, a CIDR network that contains it and the ID of the dog_agent running on it (whose `config.toml` declares `environment = "testing"` or `"preproduction"`). A host without clones is production-only.
+
+**Installation**
+
+- **No passwords in logs** — the `.deb` installer no longer prints the generated admin password, which `apt` would keep in `/var/log/apt/term.log`. It is stored in `/etc/sentinelsuite/sentinelcore/initial-credentials` (root only, `600`) and the file deletes itself a few minutes after the password is changed.
+
+## What v2.0.1 brings
+
+Available in the weekly build, not yet published as a release.
+
+- **Security fix [SC-2026-001](SECURITY.md#sc-2026-001)** — each installation now gets its own JWT secret, and production refuses to start on a public default. The role always comes from the database, and a session must belong to the token's user. After updating, follow the steps in the advisory.
+- **SentinelSuite identity** — shared login page with 2FA and password recovery, official favicon, `SentinelCore | SentinelSuite` tab title and Dognet Technologies footer.
+- **`.deb` package** — see [Weekly builds](#weekly-builds).
+- **New option**: `VULN_AUTH_SECRET_KEY` now really overrides `auth.secret_key`. Before, this variable had no effect.
+
+## What v2.0.0 brings
+
+2.0.0 builds on the 1.2.0 line (native **MCP server** with read/write tools, granular notification preferences, VM appliance first-boot fix) with a round of operator-facing work. The full detail is in the [User Manual](docs/user-guide/README.md); the headlines are:
+
+- **Interactive network topology** — box selection, rigid group moves, Ctrl+wheel zoom, pan, and *Fit*; personalised manual links (shape, stroke, end shapes, colour, TAG such as *lateral movement* / *monitored segment*, animation); scanner-discovered links drawn animated; subnet frames that follow their hosts, move by their header, and collapse into a summary card; **hierarchical** and **circular** views grouped by subnet, with a saved layout per view; a safe area so nodes never end up under the header.
+- **Interactive dashboard** — every column of *Vulnerability Trend* opens that day's panel: a rose chart by severity, headline numbers, and internal links to the most critical vulnerabilities and most exposed hosts.
+- **A risk score you can read** — the host *Input del risk score* card lists only the fields that really feed the engine, with the points each value contributes; duplicated fields were unified (`criticality`, `is_internet_facing` and `has_public_ip` are now derived — migration 157).
+- **Remediation plans, rebuilt around vulnerabilities** — a plan is now the explicit list of the vulnerabilities to fix, not whole hosts (**breaking**: migration 161, `/remediation-plans/:id/devices*` replaced by `/vulnerabilities`, `/vulnerabilities/remove`, `/scope` and `/selection/preview`). Pick them with combinable criteria (network/CIDR, host type, owner team, exposure, risk tier, severity, KEV, CVE, free text), one by one, all results, or per host (*all of the asset's vulnerabilities* / *risk X or higher*); new vulnerabilities on a plan's host no longer join it by themselves; existing plans are back-filled once with what they covered. Plans still complete by themselves the moment the last vulnerability is resolved (migration 158). Each host's *Remediation Summary* counts only that host's plans.
+- **Host clones** — a host can declare a clone in a *testing* and/or *pre-production* network (host/URL, network/CIDR, dog_agent id, and an "aligned with production" flag) so remediations can be tried there first; informational today, meant for the cross-tool integrations (migration 159).
+- **KEV and NVD on the vulnerability page** — a threat-intelligence card (vendor, product, due date, required action, ransomware use; migration 160) with KEV/NVD events in the timeline, and an admin action to run both updaters on demand. Table toolbars gained a working *Columns* picker, and every date is shown in European format.
+- **Comments** — threads of any depth, `@mention` autocompletion, and only the mentioned users are notified.
+- **Realtime** — Server-Sent Events refresh lists, notifications and dashboards without a reload.
+- **Security** — session revocation (password change, lock, delete), per-IP rate limits on login / 2FA, TOTP anti-replay, network scans through a root-owned wrapper with an option allowlist, validated Slack webhook URLs, and audit-log visibility by role.
+- **Themes** — all 11 themes meet WCAG AA contrast for text and severity colours (enforced by a test).
+- **Signed releases** — tagging a version builds the tarball and the VM images in CI and publishes them with `SHA256SUMS` and a GPG signature (see [packaging/README.md](packaging/README.md) and chapter 1 of the manual).
 
 ## What it actually does
 
@@ -55,7 +95,7 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
 ### Discovery and topology
 
 - Built-in `nmap`-based network discovery (configurable scan profile + scheduler).
-- Topology graph with device nodes, link endpoints, and subnet grouping.
+- Interactive topology map: grouped subnets, hierarchical / circular views, personalisable links and animated discovered links.
 - 10 third-party scanner importers: **Qualys**, **Nessus**, **Burp Suite**, **OpenVAS/GVM**, **Nexpose / InsightVM**, **OWASP ZAP**, **Nmap**, **Nikto**, **Grype**, **Trivy**.
 
 ### Risk and SLA
@@ -63,10 +103,12 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
 - Composite risk score combining CVSS base, EPSS probability, business impact, asset exposure, and exploit availability.
 - Severity tiers map directly onto SLA windows (Critical 1d, High 7d, Medium 30d, Low 90d) with 75% / 90% / 100% breach signals.
 - Override channel for zero-days, ransomware-tied CVEs, and entries in CISA KEV.
+- KEV details card on the vulnerability page (vendor, due date, required action, ransomware use) with KEV/NVD events recorded in the timeline.
 
 ### Collaboration
 
-- Comment threads on vulnerabilities and remediation plans, with `@mention` notifications.
+- Comment threads of any depth on vulnerabilities and remediation plans, with `@mention` autocompletion (only the mentioned users are notified).
+- Remediation plans with host picker, draft-only host editing, and automatic completion at 100% resolved.
 - Multi-channel notification routing: email, Slack, Telegram, Microsoft Teams, generic webhook, PagerDuty, OpsGenie.
 - Throttling and quiet-hours to keep the channel signal-to-noise sane.
 
@@ -75,7 +117,7 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
 - Native **Model Context Protocol** server embedded in the backend — single endpoint `POST /api/mcp`, JSON-RPC 2.0, no external gateway.
 - **Read tools**: `list_vulnerabilities`, `get_vulnerability`, `get_risk_summary`.
 - **Write tools**: `assign_vulnerability`, `update_vulnerability_status`, `accept_risk`, `trigger_scan` — each gated by a per-API-key scope guardrail.
-- Same contract shared across the Dognet Technologies suite (SentinelCore, FireDog, CyberSheppard) — see [docs/11-mcp-contract.md](docs/11-mcp-contract.md).
+- Same contract shared across the Dognet Technologies suite (SentinelCore, FireDog, CyberShepherd) — see [docs/11-mcp-contract.md](docs/11-mcp-contract.md).
 
 ### Integrations
 
@@ -87,8 +129,8 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
 
 - JWT auth with `httpOnly` cookies + CSRF token on state-changing requests.
 - RBAC: `admin`, `team_leader`, `user`.
-- TOTP-based 2FA, session tracking with remote revocation.
-- Full audit log for compliance reporting (PCI-DSS, ISO 27001, SOC2, HIPAA tags).
+- TOTP-based 2FA (a used code is never accepted twice), session tracking with remote revocation, per-IP rate limiting on login.
+- Audit log for compliance reporting (PCI-DSS, ISO 27001, SOC2, HIPAA tags): full for `admin` and `team_leader`, own actions only for `user`.
 
 ---
 
@@ -123,6 +165,7 @@ Each step has a real handler, a real table, and a real UI — not a dashboard ti
                                      │ kev_updater              │
                                      │ log_retention            │
                                      │ notification_digest      │
+                                     │ nessus_poller            │
                                      │ nvd_api                  │
                                      │ openvas_poller           │
                                      │ remediation_plan_progress│
@@ -206,18 +249,7 @@ npm run build      # production bundle ends up in build/
 
 ### 6. Discovery permissions
 
-The discovery worker calls `nmap` with raw socket and OS-detection flags. Two options:
-
-- **`sudo NOPASSWD` (default)** — drop a sudoers fragment so the service can call `nmap` and `arp-scan` without a password:
-
-  ```
-  # /etc/sudoers.d/sentinelcore-discovery
-  sentinelcore ALL=(root) NOPASSWD: /usr/bin/nmap, /usr/sbin/arp-scan
-  ```
-
-  Replace `sentinelcore` with whichever user runs the systemd service.
-
-- **File capabilities** — `sudo setcap cap_net_raw,cap_net_admin=eip /usr/bin/nmap`. This works on some kernels and silently fails on hardened ones; sudo is the boring reliable path.
+The discovery worker needs raw sockets and OS detection, which require root. The service does **not** run as root and does not get `sudo` on `nmap` itself: `install.sh` installs a root-owned wrapper, `/usr/local/libexec/sentinelcore/scan`, and a sudoers fragment that authorises **only** that script. The wrapper accepts `nmap` / `arp-scan` with an explicit **allowlist of options** and validated targets (no `-iL`, `-oN`, NSE scripts…) and runs them with a clean environment. Installing from the release tarball (`install.sh` / `upgrade.sh`) does this for you; a manual install should copy `packaging/templates/sentinelcore-scan` and `install-scan-privileges.sh`.
 
 ### 7. Reverse proxy (Nginx)
 
@@ -315,6 +347,8 @@ Full technical documentation lives in [`docs/`](docs/):
 
 [Overview](docs/01-overview.md) · [Architecture](docs/02-architecture.md) · [Features](docs/03-features.md) · [API Reference](docs/04-api-reference.md) · [Roles & Permissions](docs/05-roles-and-permissions.md) · [Data Model](docs/06-data-model.md) · [Integrations](docs/07-integrations.md) · [Plugin System](docs/08-plugin-system.md) · [Background Workers](docs/09-background-workers.md) · [Technical Specs](docs/10-technical-specs.md)
 
+User guide (Italian): [docs/user-guide](docs/user-guide/README.md) — the PDF edition is built with `docs/user-guide/build-pdf.sh`.
+
 Deploying on a fresh Debian 13 VM? Follow [INSTALL.md](INSTALL.md).
 
 ---
@@ -391,22 +425,27 @@ Restore:
 gunzip -c backup_YYYYMMDD.sql.gz | sudo -u postgres psql sentinelcore_db
 ```
 
-### Updates
+### Weekly builds
+
+The `prerelease` branch is the test channel: each push produces one `.deb` package for Debian 13. Get it from **Actions → Prerelease → latest run → Artifacts** (`sentinelcore-deb`). You need to be signed in to GitHub, and artifacts are kept for 30 days.
 
 ```bash
-cd /opt/sentinelcore
-git pull origin main
-
-cd vulnerability-manager
-sqlx migrate run
-SQLX_OFFLINE=true cargo build --release
-
-cd ../vulnerability-manager-frontend
-npm install
-npm run build
-
-sudo systemctl restart sentinelcore
+sudo apt install ./sentinelcore_<version>_amd64.deb
 ```
+
+Use `apt` rather than `dpkg -i`, so that dependencies are installed too. A first install sets up the server and database; on an existing install it runs `upgrade.sh`, with a database backup and migrations. Weekly builds are for testing: use releases in production.
+
+### Updates
+
+Use the `upgrade.sh` shipped in every release tarball (also for the VM appliance): it takes a database backup first, installs the new files, applies the migrations and checks health, rolling back automatically if the migrations fail. Verify the download first — see [packaging/README.md](packaging/README.md) and chapter 1 of the manual (`SHA256SUMS` + GPG signature).
+
+```bash
+tar xzf sentinelcore-<version>-linux-x86_64.tar.gz
+cd sentinelcore-<version>-linux-x86_64
+sudo ./upgrade.sh
+```
+
+Building from source instead? `git pull`, then `sqlx migrate run`, `SQLX_OFFLINE=true cargo build --release`, `npm run build` in the frontend, and restart the service. New migrations are written to be idempotent.
 
 ---
 
@@ -419,15 +458,45 @@ sudo systemctl restart sentinelcore
 | **Passwords** | Argon2id. |
 | **2FA** | TOTP (RFC 6238). |
 | **CSP** | Strict default-src `'self'`; configurable per deployment. |
-| **Rate limiting** | Per-IP token bucket; per-user is on the roadmap. |
+| **Rate limiting** | Per-IP limits on login, 2FA and registration; per-role request limits on the API. |
+| **Sessions** | Revoked on password change, lock and deletion; inactivity timeout is per-user and is not kept alive by background polling. |
+| **Network scans** | Run through a root-owned wrapper with an option allowlist and validated targets. |
 | **SSRF / path injection** | All file paths canonicalized and verified to stay under their canonical base. Outbound HTTP targets validated by host. |
 | **Audit log** | Every state-changing action writes an audit entry tied to the user. |
 
 If you spot something, please **don't** open a public issue. Email `security@dognet.tech` instead.
 
+Published advisories are listed in [SECURITY.md](SECURITY.md). Versions up to 2.0.0 are affected by [SC-2026-001](SECURITY.md#sc-2026-001): update to 2.0.1.
+
 ---
 
 ## Roadmap
+
+**Coming in 2.0.1**
+
+- Per-instance JWT secret and database-backed roles (SC-2026-001).
+- Shared SentinelSuite login, favicon and tab title.
+- Weekly `.deb` builds for Debian 13.
+
+**Coming in 2.1.0**
+
+- Native Tenable Nessus connector (Essentials + Professional, certified 10.12.x), migration 162.
+- Edition shown in the import history (migration 163) and "Sync now" for OpenVAS and Nessus.
+- Critical alerts to teams and assigned people, notifications for auto-assignment.
+- Topology canvas that follows the zoom, subnet links as a star, complete clone data.
+- Initial admin password kept out of the installer logs.
+
+**Shipped in 2.0.0**
+
+- Interactive topology (selection, zoom, personalised links, grouped hierarchical / circular views, collapsible subnets).
+- Dashboard day panel with rose chart and internal links; real-data *Trend* column.
+- Host *Input del risk score* card with points per value; unified derived fields (migration 157).
+- Remediation plans built on explicit vulnerabilities with multi-criteria selection, draft-only editing, add from Hosts / Vulnerabilities, instant auto-completion (migrations 158, 161); per-host Remediation Summary.
+- CISA KEV / NVD details and timeline events; on-demand updaters; host clones in testing / pre-production (migrations 159, 160).
+- Threaded comments with `@mention` autocompletion; realtime updates (SSE).
+- Security hardening: session revocation, login rate limits, TOTP anti-replay, scan wrapper allowlist, Slack webhook validation, audit visibility by role.
+- WCAG AA contrast for all themes.
+- Signed, CI-built releases (tarball, qcow2, OVA, `SHA256SUMS` + GPG).
 
 **Shipped in 1.2.0**
 
@@ -453,7 +522,7 @@ If you spot something, please **don't** open a public issue. Email `security@dog
 
 - Phase C: skill-based auto-assignment with "add skill" alert in the assignment dialog.
 - Container scanning (Trivy / Grype) — importers already in tree, wiring up next.
-- MCP contract rollout to FireDog and CyberSheppard (contract defined in [docs/11-mcp-contract.md](docs/11-mcp-contract.md), implementation in progress on each product).
+- MCP contract rollout to FireDog and CyberShepherd (contract defined in [docs/11-mcp-contract.md](docs/11-mcp-contract.md), implementation in progress on each product).
 
 **Considered, not committed**
 
@@ -480,14 +549,14 @@ Pull requests and issues are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) be
 
 Two things that will save us all time:
 
-1. Branch off `develop/v1.2.0`, not `main`. `main` only takes curated merges.
+1. Branch off `develop/v2.0.0`, not `main`. `main` only takes curated merges.
 2. If you touch a sqlx query, commit the regenerated `.sqlx/` cache in the same PR.
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+**AGPL-3.0** (Community edition) — see [LICENSE](LICENSE). The Pro edition is proprietary and distributed separately under a commercial licence.
 
 ---
 

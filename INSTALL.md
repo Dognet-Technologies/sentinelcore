@@ -6,7 +6,7 @@ This guide was **validated by a full clean install on a Debian 13 VM** (PostgreS
 
 ## Filesystem convention — `/opt/sentinelsuite/`
 
-SentinelCore is one component of the **Sentinel Suite** (alongside FireDog and CyberSheppard). By convention all suite software installs under `/opt/sentinelsuite/<component>/`, so multiple components can coexist on the same host:
+SentinelCore is one component of the **Sentinel Suite** (alongside FireDog and CyberShepherd). By convention all suite software installs under `/opt/sentinelsuite/<component>/`, so multiple components can coexist on the same host:
 
 ```
 /opt/sentinelsuite/
@@ -307,17 +307,16 @@ Boot-time validation (with `APP_ENV=production`): the JWT secret must be ≥ 32 
 
 Discovery shells out to `nmap` and `arp-scan`. When the service does not run as root, every invocation is prefixed with **`sudo -n`** (non-interactive). Two supported setups — pick **one**:
 
-### Option A — sudoers (recommended, matches the code's default path)
+### Option A — sudoers + scan wrapper (recommended, matches the code's default path)
+
+The sudoers rule authorizes a single root-owned wrapper (`/usr/local/libexec/sentinelcore/scan`), **not** `nmap`/`arp-scan` themselves. The wrapper only accepts an allowlist of scan options (no input/output files, no NSE scripts, no data dirs) and validated targets after `--`, so a crafted request can never turn into arbitrary root file access. The release package ships it; install it with the bundled script:
 
 ```bash
-sudo tee /etc/sudoers.d/sentinelcore-discovery >/dev/null <<'EOF'
-# SentinelCore network discovery: allow the service user to run the two
-# scan binaries as root without password. Keep this list minimal.
-sentinelcore ALL=(root) NOPASSWD: /usr/bin/nmap, /usr/sbin/arp-scan
-EOF
-sudo chmod 440 /etc/sudoers.d/sentinelcore-discovery
+sudo bash templates/install-scan-privileges.sh sentinelcore templates/sentinelcore-scan
 sudo visudo -c   # syntax check
 ```
+
+It writes `/etc/sudoers.d/sentinelcore-scan` (`sentinelcore ALL=(root) NOPASSWD: /usr/local/libexec/sentinelcore/scan`). If you followed an older version of this guide and have `/etc/sudoers.d/sentinelcore-discovery` granting `nmap`/`arp-scan` directly, **remove it** — otherwise it stays active next to the wrapper.
 
 With this option the systemd unit **must not** set `NoNewPrivileges=true` (it would silently break `sudo`).
 
@@ -759,3 +758,43 @@ initial credentials
 | Discovery "devices_found" looks 1–2 higher than real hosts | Cosmetic: arp-scan footer lines are counted before the IP parse drops them. Real hosts persist correctly; harmless |
 | OpenVAS plugin: "Connessione OK · GMP X.x" never returns / "gvm-cli not found" | `gvm-tools` not installed or not in the systemd `PATH`. Install with `sudo pipx install --global gvm-tools` (step 9), then restart `sentinelcore`. The default systemd `PATH` already includes `/usr/local/bin` so no drop-in unit is needed when installed `--global` |
 | OpenVAS plugin: `gvm-cli exit 1: …deprecated 'Auth' section… EOF` | You have `gvm-tools 25.x` whose `[Auth]` config-file section is silently ignored. `pipx install --global gvm-tools` pulls `26.x`, which the plugin uses correctly (credentials via `--gmp-username/--gmp-password` flags) |
+| Service fails to start, `systemctl status` shows `status=226/NAMESPACE` | Running inside an **unprivileged Proxmox LXC container** (or similar): the unit's namespace-based hardening can't create mount namespaces. See [Proxmox / LXC: service fails with 226/NAMESPACE](#proxmox--lxc-service-fails-with-226namespace) below |
+
+### Proxmox / LXC: service fails with 226/NAMESPACE
+
+On a normal VM (KVM) or bare metal the shipped unit works as-is. Inside an
+**unprivileged LXC container** (e.g. a Proxmox CT) the service fails right after
+start and `systemctl status sentinelcore` shows:
+
+```
+Process: … ExecStart=…/vulnerability-manager (code=exited, status=226/NAMESPACE)
+ Main PID: … (code=exited, status=226/NAMESPACE)
+```
+
+Cause: the unit hardening (`PrivateTmp`, `ProtectSystem=full`, `ProtectHome`,
+`ReadWritePaths`) needs **mount namespaces**, which an unprivileged container is
+not allowed to create. It is not a SentinelCore bug.
+
+Fix — relax those directives **only in the container** with a drop-in override
+(the shipped unit, and therefore every VM install, keeps the full hardening):
+
+```bash
+sudo mkdir -p /etc/systemd/system/sentinelcore.service.d
+sudo tee /etc/systemd/system/sentinelcore.service.d/override.conf >/dev/null <<'EOF'
+[Service]
+# Namespace-based sandboxing is unavailable in unprivileged LXC containers.
+# Disable it ONLY here; on a KVM VM keep the original hardening.
+PrivateTmp=false
+ProtectSystem=false
+ProtectHome=false
+ReadWritePaths=
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart sentinelcore
+sudo systemctl status sentinelcore --no-pager   # expect: active (running)
+curl -sk https://localhost/api/health && echo    # expect: {"status":"healthy", …}
+```
+
+For a production deployment prefer a full **KVM VM** (or a privileged container):
+there the hardening applies and no override is needed.

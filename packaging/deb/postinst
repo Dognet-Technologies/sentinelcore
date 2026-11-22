@@ -1,0 +1,15 @@
+#!/bin/bash
+# Primo install -> install.sh; istanza gia' presente -> upgrade.sh.
+# Le dipendenze arrivano dal campo Depends: dpkg tiene il lock e qui apt non puo' girare.
+set -euo pipefail
+
+[ "${1:-}" = "configure" ] || exit 0
+
+PAYLOAD=/usr/share/sentinelcore/release
+APP=/opt/sentinelsuite/sentinelcore/app
+
+if [ -x "$APP/vulnerability-manager" ]; then
+    "$PAYLOAD/upgrade.sh"
+else
+    SENTINELCORE_SKIP_APT=true "$PAYLOAD/install.sh"
+fi

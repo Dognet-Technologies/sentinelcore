@@ -1,0 +1,8 @@
+#!/bin/bash
+# Su rimozione ferma il servizio; database, configurazione e dati restano intatti.
+set -euo pipefail
+
+if [ "${1:-}" = "remove" ]; then
+    systemctl stop sentinelcore 2>/dev/null || true
+    systemctl disable --now sentinelcore-initial-credentials.timer 2>/dev/null || true
+fi

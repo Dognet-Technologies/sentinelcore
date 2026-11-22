@@ -7,6 +7,12 @@
 #
 # Uso:  packaging/build-release.sh [versione]
 #       (versione default = git describe, es. v1.0.1-beta)
+#
+# Agganci per le build con estensioni (open core), entrambi facoltativi:
+#   SC_BINARY=<path>           usa questo binario gia' compilato invece di
+#                              compilare quello Community
+#   SC_FRONTEND_ACTIVE=<path>  usa questo file come src/extensions/active.ts
+#                              durante la build del frontend (poi ripristinato)
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,13 +28,40 @@ echo "▶ Release: $NAME"
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 
 # ── build backend (offline sqlx) ────────────────────────────────────────────
-echo "▶ Build backend (cargo --release)"
-( cd vulnerability-manager && SQLX_OFFLINE=true cargo build --release )
-install -m 0755 vulnerability-manager/target/release/vulnerability-manager "$STAGE/vulnerability-manager"
+if [ -n "${SC_BINARY:-}" ]; then
+  [ -x "$SC_BINARY" ] || { echo "ERRORE: SC_BINARY non eseguibile: $SC_BINARY" >&2; exit 1; }
+  echo "▶ Backend: binario fornito ($SC_BINARY)"
+  install -m 0755 "$SC_BINARY" "$STAGE/vulnerability-manager"
+else
+  echo "▶ Build backend (cargo --release)"
+  ( cd vulnerability-manager && SQLX_OFFLINE=true cargo build --release )
+  install -m 0755 vulnerability-manager/target/release/vulnerability-manager "$STAGE/vulnerability-manager"
+fi
 
 # ── build frontend ──────────────────────────────────────────────────────────
 echo "▶ Build frontend (npm run build)"
+ACTIVE_TS="vulnerability-manager-frontend/src/extensions/active.ts"
+# Componenti dell'estensione (.tsx): iniettati in src/extensions/pro/ così
+# active.ts può importarli (vedi SC_FRONTEND_DIR, impostato da build-pro.sh).
+PRO_DIR="vulnerability-manager-frontend/src/extensions/pro"
+if [ -n "${SC_FRONTEND_ACTIVE:-}" ]; then
+  [ -f "$SC_FRONTEND_ACTIVE" ] || { echo "ERRORE: SC_FRONTEND_ACTIVE non trovato: $SC_FRONTEND_ACTIVE" >&2; exit 1; }
+  cp "$ACTIVE_TS" "$ACTIVE_TS.community"
+  if [ -n "${SC_FRONTEND_DIR:-}" ]; then
+    [ -d "$SC_FRONTEND_DIR" ] || { echo "ERRORE: SC_FRONTEND_DIR non trovato: $SC_FRONTEND_DIR" >&2; exit 1; }
+    rm -rf "$PRO_DIR"; mkdir -p "$PRO_DIR"; cp -a "$SC_FRONTEND_DIR/." "$PRO_DIR/"
+    echo "  componenti frontend: $SC_FRONTEND_DIR → $PRO_DIR"
+  fi
+  trap 'mv -f "$REPO_ROOT/$ACTIVE_TS.community" "$REPO_ROOT/$ACTIVE_TS" 2>/dev/null || true; rm -rf "$REPO_ROOT/$PRO_DIR" 2>/dev/null || true' EXIT
+  cp "$SC_FRONTEND_ACTIVE" "$ACTIVE_TS"
+  echo "  estensioni frontend: $SC_FRONTEND_ACTIVE"
+fi
 ( cd vulnerability-manager-frontend && npm ci --no-audit --no-fund && CI=false GENERATE_SOURCEMAP=false npm run build )
+if [ -n "${SC_FRONTEND_ACTIVE:-}" ]; then
+  mv -f "$ACTIVE_TS.community" "$ACTIVE_TS"
+  rm -rf "$PRO_DIR"
+  trap - EXIT
+fi
 mkdir -p "$STAGE/frontend"; cp -a vulnerability-manager-frontend/build/. "$STAGE/frontend/"
 
 # ── artefatti di supporto ───────────────────────────────────────────────────
@@ -49,10 +82,18 @@ echo "$VERSION" > "$STAGE/VERSION"
 echo "▶ Tarball + checksum + firma"
 ( cd "$OUT" && tar czf "$NAME.tar.gz" "$NAME" )
 ( cd "$OUT" && sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256" )
-# Firma GPG (richiede la chiave sul build host). Non-fatale se assente.
-if gpg --list-secret-keys >/dev/null 2>&1; then
-  ( cd "$OUT" && gpg --armor --detach-sign --output "$NAME.tar.gz.asc" "$NAME.tar.gz" ) \
+# Firma GPG (richiede la chiave sul build host). Non-fatale se assente, salvo
+# REQUIRE_SIGNATURE=1 (usato dalla CI: una release non firmata deve fallire).
+# Se GPG_PASSPHRASE e' impostata la firma e' non interattiva (CI).
+# (valutazione in $(...) e non `| grep -q`: con pipefail grep che esce subito puo' dare SIGPIPE a gpg)
+if [ -n "$(gpg --list-secret-keys --with-colons 2>/dev/null | awk -F: '$1=="sec"{print "y"}')" ]; then
+  GPG_ARGS=(--armor --detach-sign)
+  [ -n "${GPG_PASSPHRASE:-}" ] && GPG_ARGS+=(--batch --yes --pinentry-mode loopback --passphrase-fd 3)
+  ( cd "$OUT" && gpg "${GPG_ARGS[@]}" --output "$NAME.tar.gz.asc" "$NAME.tar.gz" 3<<<"${GPG_PASSPHRASE:-}" ) \
     && echo "  firma: $NAME.tar.gz.asc"
+elif [ "${REQUIRE_SIGNATURE:-0}" = "1" ]; then
+  echo "ERRORE: REQUIRE_SIGNATURE=1 ma nessuna chiave GPG disponibile" >&2
+  exit 1
 else
   echo "  (nessuna chiave GPG sul build host: firma saltata)"
 fi

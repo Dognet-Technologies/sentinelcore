@@ -3,36 +3,130 @@
 SentinelCore distingue due percorsi distinti che è utile non confondere:
 
 - **Network Discovery** — scopre *dispositivi* sulla rete (IP, MAC, hostname, sistema operativo, porte aperte) e li mostra come nodi di una topologia. Non genera da sola vulnerabilità: mappa "cosa c'è in rete".
-- **Import scanner** (capitolo 8) — importa *vulnerabilità* trovate da uno scanner esterno o dal connettore OpenVAS, e le collega agli asset noti.
+- **Import scanner** (capitolo 8) — importa *vulnerabilità* trovate da uno scanner esterno o dai connettori OpenVAS e Nessus, e le collega agli asset noti.
 
 ## Scansione di rete
 
 Dalla pagina **Discovery** puoi avviare una scansione manuale immediata, oltre a quella pianificata configurabile in Impostazioni (capitolo 4). Puoi scegliere al volo tipo di scansione, timing e opzioni, oppure usare i valori di default configurati dall'amministratore.
 
-Al termine, la mappa di **topologia di rete** mostra i dispositivi scoperti come nodi collegati, con indicazione visiva di stato (online/offline) e, se disponibili, del numero di vulnerabilità note per dispositivo.
+Al termine, la mappa di **topologia di rete** mostra i dispositivi scoperti come nodi, con indicazione visiva di stato (online/offline) e del numero di vulnerabilità note per dispositivo.
+
+## La mappa di topologia
+
+La pagina **Topologia di rete** è una mappa interattiva dei dispositivi. Team Leader e Amministratori dispongono di tutti i comandi qui sotto; gli Utenti consultano la mappa (zoom, scorrimento trascinando lo sfondo, dettaglio degli host). La disposizione salvata è **una sola, condivisa da tutti**.
+
+### Muoversi e selezionare
+
+| Azione | Come |
+|---|---|
+| Spostare un host | trascinalo; se fa parte di una selezione si muove **l'intera selezione**, mantenendo le distanze |
+| Selezionare più host | trascina un riquadro sullo sfondo vuoto, oppure `Ctrl`+clic sui singoli host; `Esc` annulla la selezione |
+| Zoom | `Ctrl`+rotellina (centrato sul puntatore) o i pulsanti lente nella barra |
+| Scorrere la mappa | tasto centrale del mouse trascinando (chi può solo consultare la mappa scorre trascinando lo sfondo), oppure le **frecce** direzionali della tastiera |
+| Inquadrare tutto | pulsante **Fit**: adatta zoom e posizione a tutto ciò che è visibile nella finestra, senza ingrandire troppo |
+| Salvare la disposizione | pulsante **Salva** nella barra: si accende quando c'è qualcosa da salvare |
+| Schermo intero | pulsante in alto a destra; menu e finestre restano visibili anche a schermo intero |
+
+I nodi non possono finire sotto l'intestazione o i pannelli che stanno sopra la mappa: c'è un'area sicura in alto e a sinistra, e un host trascinato si ferma al bordo. Le disposizioni salvate in versioni precedenti che avevano nodi troppo in alto vengono abbassate automaticamente all'apertura, senza segnarle come modificate. Sulle reti grandi la mappa si **apre già centrata** sugli host, così non devi cercarli.
+
+**(Pro)** L'edizione Pro mostra in alto a destra una **minimappa**: una vista in miniatura dell'intera rete con un rettangolo che indica la porzione visibile. Cliccando o **trascinando il rettangolo** ci si sposta rapidamente — molto utile quando gli host sono troppi per stare tutti nella finestra.
+
+Con il **tasto destro** su uno o più host si apre il menu dei dispositivi: dettaglio, **nascondi icona** (l'host resta nel sistema, sparisce solo dalla mappa; il pulsante con l'occhio li mostra di nuovo), **colore** del nodo, assegnazione e altre azioni.
+
+### Le tre viste
+
+Il selettore in alto cambia la disposizione:
+
+- **Subnet Grid** — gli host sono raccolti per sottorete (`/24`) in riquadri, e **la disposizione è quella salvata**;
+- **Hierarchical** — a livelli: router e firewall in alto, poi switch, server ed endpoint;
+- **Circular Topology** — gli host su un cerchio.
+
+Nelle viste Hierarchical e Circular gli host sono **raggruppati per sottorete**: ogni sottorete è un blocco con il suo riquadro (nella gerarchica i blocchi stanno uno accanto all'altro, a capo dopo tre; nella circolare stanno su un cerchio grande, con gli host di ciascuna su un cerchio piccolo). Il pulsante `▣` toglie o rimette il raggruppamento. È molto comodo con reti grandi, perché un gruppo si può comprimere.
+
+Se sposti degli host in una di queste viste e salvi, la **posizione viene ricordata per quella vista**: Subnet Grid, Hierarchical e Circular (raggruppata o no) hanno ciascuna la propria disposizione e non si sovrascrivono a vicenda.
+
+### Sottoreti: riquadri mobili e comprimibili
+
+Il riquadro di una sottorete **segue gli host**: se ne sposti uno il riquadro si adatta. Trascinando l'**intestazione** del riquadro (la fascia con il nome della rete, ad esempio `10.10.0.0/24`) si spostano insieme tutti gli host del gruppo. Il triangolino a sinistra del nome **comprime il gruppo** in una scheda con la rete e il numero di host; cliccandolo di nuovo il gruppo si riapre. Quando due gruppi compressi sono collegati da più linee, vedi **una sola linea** con la scritta "N links", per non sovrapporre decine di tratti: per modificare le singole linee riapri i gruppi. Quali gruppi sono compressi è una preferenza personale, ricordata per ogni utente.
+
+### Le linee di collegamento
+
+- **Linee azzurre tratteggiate e animate** — sono i collegamenti **scoperti dagli scanner**: indicano asset che possono comunicare tra loro. Passando il mouse compare il tipo di collegamento, gli hop e la latenza. Il pulsante `⇄N` nella barra le mostra o le nasconde (se sono molte, oltre 120, restano ferme per non appesantire la mappa; se il sistema operativo è impostato per ridurre le animazioni, restano sempre ferme).
+- **Linee arancioni** — sono i collegamenti **manuali**, disegnati da te: trascina il piccolo punto arancione che compare in alto a destra di un host fino a un altro host. Vanno salvate con il pulsante Salva.
+
+Con il **tasto destro su una linea manuale** si apre un menu per personalizzarla:
+
+| Opzione | Scelte |
+|---|---|
+| **Shape** (forma) | Straight (diritta), Curved (curva), 90° rounded (a gomito con angoli arrotondati) |
+| **Stroke** (tratto) | Solid, Dashed (tratteggiato), Dotted (puntinato) |
+| **Start / End** | forma dell'estremità: None, Arrow (freccia), Dot (punto), Diamond (rombo) |
+| **Color** | sei colori |
+| **Tag** | *Lateral movement* (movimento laterale: rosso, tratteggiato, animato) e *Monitored segment* (segmento monitorato: azzurro); il tag imposta colore, tratto e animazione, che puoi poi ritoccare, e scrive la dicitura sulla linea |
+| **Animation** | Still (ferma) o Flowing (con scorrimento) |
+| **Edit label…** | scrive un'etichetta mostrata sulla linea |
+| **Delete** | elimina la linea |
+
+Le linee si fermano al bordo degli host e sono cliccabili in una fascia più larga del tratto, per essere facili da prendere.
 
 ## Host / asset
 
-La pagina **Host** elenca tutti gli asset conosciuti (scoperti via rete o creati manualmente), con hostname, indirizzo IP, sistema operativo, tipo di dispositivo, criticità e stato. Da qui puoi:
+La pagina **Host** elenca tutti gli asset conosciuti (scoperti via rete o creati manualmente), con hostname, indirizzo IP, sistema operativo, tipo di dispositivo, criticità e stato. Quando un host non ha un hostname noto (succede spesso in reti virtuali o dietro NAT, dove nessun protocollo di risoluzione risponde) il suo nome è l'indirizzo IP, mostrato **una volta sola** e senza la maschera `/32`.
+
+Da qui puoi:
 
 - aprire il dettaglio di un singolo host — mostra le informazioni dell'asset (non avvia direttamente azioni sulle sue vulnerabilità: quelle si gestiscono dalla pagina Vulnerabilità, filtrando per quell'asset);
 - modificare in blocco più dispositivi selezionati (es. assegnare un proprietario, un livello di criticità, dei tag);
+- **aggiungere gli host selezionati a un piano di remediation in bozza** (tasto destro → *Aggiungi al piano di remediation (bozza)*, vedi capitolo 9);
 - eliminare in blocco dispositivi non più rilevanti.
 
-### Quali campi di un host influenzano davvero il punteggio di rischio
+### Limite di host e stato «oltre licenza»
 
-Aprendo il dettaglio di un host trovi la scheda **"System Configuration" → "RBRE & Compliance"** (il nome resta in inglese anche con l'interfaccia in italiano). Contiene diversi campi, ma **solo tre** di questi entrano davvero nel calcolo del punteggio di rischio delle vulnerabilità di quell'host — gli altri sono informativi/organizzativi. Sapere quali sono ti permette di alzare o abbassare consapevolmente il rischio calcolato per un host, invece di scoprirlo per tentativi:
+L'edizione **Community** gestisce fino a **15 host**. Quando ne scopri o ne crei di più, i 15 **più vecchi** (per data di prima scoperta) restano pienamente gestiti; gli altri passano in stato **«oltre licenza»**: restano **visibili e contati** nelle liste e nella mappa — così sai che esistono — ma **non vengono gestiti**, cioè non importano vulnerabilità e non entrano nei piani di remediation. Nella tabella Host la riga mostra l'indicatore **Oltre licenza**.
 
-| Campo (nome in UI) | Valori | Effetto sul punteggio |
+Il limite si applica **da solo**: scoprendo nuovi host o eliminandone, lo stato «oltre licenza» si ricalcola senza bisogno di riavviare nulla. Per gestirne di più serve l'edizione **(Pro)**, che alza il tetto a scaglioni e conta gli host **per ambiente** (produzione, testing, pre-produzione) separatamente.
+
+### Il dettaglio di un host: la scheda "RBRE & Compliance"
+
+Aprendo il dettaglio di un host, nella scheda **System Configuration** trovi **RBRE & Compliance** (RBRE = Risk-Based Remediation Engine; il nome resta in inglese anche con l'interfaccia in italiano). È divisa in riquadri, e la differenza tra l'uno e l'altro è netta:
+
+**1. "Input del risk score"** — evidenziato, con l'etichetta **Pilota il risk score**. Contiene **solo ed esclusivamente** i dati dell'host che entrano davvero nel calcolo del punteggio di rischio delle sue vulnerabilità (insieme a CVSS, EPSS ed exploit, che sono della vulnerabilità, non dell'host). Accanto a ogni valore trovi i **punti** che porta al calcolo; in modifica, sotto il campo, vedi i punti di tutti i valori possibili:
+
+| Campo | Valori e punti | Note |
 |---|---|---|
-| **Business Criticality** | Mission Critical / Core Business / Supporto / Lab-Test | È il fattore con più peso: da solo può valere fino a 15 punti su 100. "Mission Critical" segnala un sistema il cui fermo blocca il business (es. gateway di pagamento, autenticazione, infrastruttura core); "Lab/Test" un ambiente di sviluppo il cui compromesso ha impatto reale minimo. |
-| **Exposure Level** | Internet Facing / DMZ / Internal / Segmented | Fino a 12 punti. "Internet Facing" (o un IP pubblico rilevato automaticamente sull'host) porta il massimo; "Segmented" (rete isolata) porta il minimo — un attaccante deve prima superare un altro livello di rete per raggiungerlo. |
-| **Data Classification** *(oppure il flag* **Data Processor (GDPR)** *acceso)* | Public / Internal / Sensitive / Critical | +5 punti fissi se il valore è "Sensitive" o "Critical", oppure se il flag "Data Processor (GDPR)" è acceso — segnala che l'host tratta dati personali/sensibili, indipendentemente dalla classificazione testuale. |
+| **Business Criticality** | Mission Critical 15 · Core Business 11 · Supporto 6 · Lab/Test 2 | È il fattore con più peso. "Mission Critical" segnala un sistema il cui fermo blocca il business; "Lab/Test" un ambiente il cui compromesso ha impatto minimo. |
+| **Exposure Level** | Internet Facing 12 · DMZ 10 · Internal 5 · Segmented 0 | Quanto l'host è raggiungibile da un attaccante. |
+| **Data Classification** | Public / Internal: nessun bonus · Sensitive / Critical: +5 | Segnala che l'host tratta dati sensibili. |
+| **Data Processor (GDPR)** | acceso: +5 | Anch'esso segnala dati personali. **Non si somma** a Data Classification: i dati sensibili valgono +5 **una volta sola**, che a motivarli sia la classificazione, il flag, o entrambi. |
+| **IP pubblico** *(sola lettura)* | Sì: esposizione al massimo (12) | Rilevato **automaticamente** dall'indirizzo (tutto ciò che non è nei range privati RFC 1918, loopback o link-local). Un IP pubblico porta l'esposizione al massimo qualunque sia l'Exposure Level; non c'è nulla da impostare a mano. |
 
-**Non entrano invece nel calcolo** (anche se si trovano nella stessa scheda e potrebbero sembrare correlati): "Criticality (legacy)", Device Use Case, Remediation Difficulty, gli switch "Internet Facing"/"Has Public IP"/"Patch Available", e il campo libero "Deployment Impact". Sono utili per organizzazione e reportistica interna, ma oggi non spostano il punteggio di rischio di una singola unità.
+**2. "Contesto di remediation"** e **3. "Compliance e note"** — sono **solo informativi**: Remediation Difficulty, Patch Available, Deployment Impact, Compensating Controls, Compliance Requirements, tag e note aiutano chi pianifica e assegna gli interventi e chi fa reportistica, ma **non entrano in nessun calcolo**.
 
-> Un IP pubblico viene comunque rilevato **automaticamente** dal sistema guardando l'indirizzo della vulnerabilità stessa (tutto ciò che non rientra nei range privati RFC 1918/loopback/link-local) — non serve marcare nulla a mano perché questa parte funzioni; è "Exposure Level" il campo che aggiunge un giudizio più fine (es. DMZ vs Internet Facing) sopra a quel rilevamento automatico.
-
-Il resto della scheda **Host** (proprietario, note, tag, tipo dispositivo) resta comunque utile per organizzazione interna, filtri e ricerca, anche se non influenza il punteggio.
+> **Cosa è cambiato rispetto alle versioni precedenti.** Prima esistevano campi doppi che dicevano la stessa cosa e potevano contraddirsi (ad esempio *Criticality* e *Business Criticality*, oppure *Internet Facing* ed *Exposure Level*). Ora sono unificati: **Criticality** deriva da Business Criticality, **Internet Facing** da Exposure Level e **Has Public IP** dall'indirizzo, e non si inseriscono più a mano — servono solo a ordinare gli host nei piani di remediation. Il campo *Device Use Case*, che aveva la stessa lista del tipo di dispositivo e non influenzava nulla, non è più mostrato. Il tipo di dispositivo si sceglie nella scheda *System Information* e guida l'icona.
 
 > Per policy predefinita, un utente semplice non modifica questi campi direttamente ma propone una modifica che un admin/team leader approva — vedi "Override permessi utente" nel capitolo 4 per attivare la modifica diretta.
+
+### Cloni in altre reti (testing e pre-produzione)
+
+Di solito gli host sono asset **in produzione**, ma può esistere una copia dello stesso asset in una rete di **testing** e/o di **pre-produzione**: è dove conviene provare una remediation o una modifica prima di applicarla in produzione. La scheda **Cloni in altre reti** (sotto RBRE & Compliance, con la sua matita di modifica) serve a dichiararlo:
+
+- **Clone in rete di Testing** e **Clone in rete di Pre-produzione** sono due caselle indipendenti. Spuntandone una si abilitano i campi del clone:
+  - **IP del clone** — l'indirizzo IP dell'host nell'altra rete (obbligatorio). Deve essere un IP **interno**: hostname, URL e indirizzi esterni (pubblici) vengono segnalati come errore e non si salvano;
+  - **Rete del clone** — la rete in cui sta il clone, in formato CIDR (es. `10.20.0.0/24`, obbligatoria). Deve contenere l'IP del clone e stare interamente in un blocco interno (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`). Di norma le reti di testing e di pre-produzione hanno indirizzamenti diversi da quella di produzione;
+  - **ID del dog_agent sul clone** — l'identificativo dell'agent che gira su quel clone (obbligatorio). Sono ammessi lettere, numeri e i simboli `. _ : -`. Nel suo `config.toml` quell'agent deve dichiarare `environment = "testing"` o `environment = "preproduction"`, secondo la rete del clone;
+  - **Allineato alla produzione** — una spunta per dichiarare esplicitamente che il clone ha le stesse versioni dei servizi e gli stessi aggiornamenti. Dovrebbe esserlo sempre, ma scriverlo dice a chi lo usa se può fidarsi del test.
+- Togliendo la spunta, i dati di quel clone vengono cancellati: non restano valori vecchi dimenticati.
+- Modifica e salvataggio seguono le stesse regole degli altri dati del dispositivo (Amministratore e Team Leader del team dell'host; un Utente solo con l'override di modifica diretta, vedi capitolo 4).
+
+È un'informazione **solo organizzativa**: oggi non entra in nessun calcolo (né nel punteggio di rischio né nei piani di remediation) e non avvia nessuna azione sul clone. È predisposta perché in futuro venga **esportata verso le integrazioni tra gli host** della suite.
+
+> **(Pro)** Nell'edizione Pro testing e pre-produzione diventano **ambienti con un proprio conteggio** di host (ciascuno con il suo tetto, in base allo scaglione di licenza) e l'ambiente **modula il punteggio di rischio**: produzione a peso pieno, pre-produzione ridotto, testing molto ridotto. Nell'edizione Community l'informazione resta solo organizzativa, come descritto qui sopra.
+
+### Il riepilogo remediation di un host
+
+In fondo alla stessa pagina la scheda **Remediation Summary** riguarda **solo l'host che stai guardando** (il suo nome è scritto nell'intestazione). I numeri contano i **piani di remediation che includono questo host**, escluse le bozze e i piani annullati: un piano con quattro host conta 1 su ciascuno dei quattro, quindi due host dello stesso piano mostrano lo stesso numero.
+
+- **Piani in corso** — piani non ancora conclusi per questo host, con un link a ciascuno;
+- **Piani completati** — piani in cui l'host risulta completato (tutte le sue vulnerabilità risolte);
+- **Falliti o saltati**;
+- **Ultima remediation conclusa su questo host** — nome del piano (con link), esito e data.

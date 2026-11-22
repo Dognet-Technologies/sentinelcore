@@ -58,11 +58,14 @@ echo "Server origin (CORS): https://$SERVER_NAME   |   NIC discovery: $NET_IFACE
 
 # ── 1. runtime deps (NIENTE toolchain di build) ─────────────────────────────
 log "1/9 Installazione dipendenze runtime"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y --no-install-recommends \
-  postgresql nginx nmap arp-scan ca-certificates curl openssl libssl3 sudo \
-  avahi-utils samba-common-bin >/dev/null
+# SENTINELCORE_SKIP_APT: dal .deb le dipendenze arrivano da Depends (dpkg tiene il lock).
+if [ "${SENTINELCORE_SKIP_APT:-false}" != true ]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y --no-install-recommends \
+    postgresql nginx nmap arp-scan ca-certificates curl openssl libssl3 sudo \
+    avahi-utils samba-common-bin >/dev/null
+fi
 # avahi-utils (avahi-resolve) e samba-common-bin (nmblookup): risoluzione
 # hostname via mDNS/.local e NetBIOS per i device di rete scoperti da ARP
 # scan che non hanno un record DNS inverso (tipico di telefoni/laptop su
@@ -85,6 +88,24 @@ mkdir -p "$APP/migrations"; cp -a "$PKG_DIR/migrations/." "$APP/migrations/"
 # ── 4. PostgreSQL: user + db (password per-istanza) ─────────────────────────
 log "4/9 PostgreSQL: utente e database"
 systemctl enable --now postgresql >/dev/null 2>&1 || true
+# Su alcune distro (es. Kali) il meta-servizio `postgresql` resta "active"
+# anche con il cluster `postgresql@<ver>-main` NON avviato: senza questo i passi
+# successivi (CREATE ROLE, migration su 127.0.0.1:5432) fallivano in modo
+# criptico. Avvia esplicitamente ogni cluster "down" e attendi che sia pronto.
+if command -v pg_lsclusters >/dev/null 2>&1; then
+  pg_lsclusters -h 2>/dev/null | awk '$4=="down"{print $1, $2}' | while read -r PGVER PGCLU; do
+    pg_ctlcluster "$PGVER" "$PGCLU" start >/dev/null 2>&1 || true
+  done
+fi
+for _ in $(seq 1 20); do
+  pg_isready -h 127.0.0.1 -p 5432 -q 2>/dev/null && break
+  sleep 1
+done
+if ! pg_isready -h 127.0.0.1 -p 5432 -q 2>/dev/null; then
+  echo "ERRORE: PostgreSQL non è in ascolto su 127.0.0.1:5432. Avvialo e riprova:"
+  echo "        sudo systemctl start postgresql  (o: sudo pg_ctlcluster <ver> main start)"
+  exit 1
+fi
 DB_EXISTS="$(sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || true)"
 if [ "$DB_EXISTS" = "1" ] && [ "$FORCE" -ne 1 ]; then
   echo "ERRORE: il database '$DB_NAME' esiste gia'. Installer pensato per host pulito."
@@ -147,10 +168,18 @@ install -m 0644 "$PKG_DIR/templates/sentinelcore.service" /etc/systemd/system/se
 install -m 0644 "$PKG_DIR/templates/nginx-sentinelcore.conf" /etc/nginx/sites-available/sentinelcore
 ln -sf /etc/nginx/sites-available/sentinelcore /etc/nginx/sites-enabled/sentinelcore
 rm -f /etc/nginx/sites-enabled/default
-# discovery: nmap/arp-scan via sudo NOPASSWD per l'utente di servizio
-echo "$SVC_USER ALL=(root) NOPASSWD: /usr/bin/nmap, /usr/sbin/arp-scan" > /etc/sudoers.d/sentinelcore-scan
-chmod 440 /etc/sudoers.d/sentinelcore-scan
-nginx -t >/dev/null 2>&1 && systemctl reload nginx
+# discovery: nmap/arp-scan passano da un wrapper root-only con allowlist di
+# opzioni; il sudoers NOPASSWD autorizza solo il wrapper, non i binari.
+bash "$PKG_DIR/templates/install-scan-privileges.sh" "$SVC_USER" "$PKG_DIR/templates/sentinelcore-scan"
+# nginx potrebbe non essere avviato (es. Kali non auto-avvia i servizi dopo
+# l'install): `reload` su un servizio inattivo falliva ("is not active, cannot
+# reload") e interrompeva l'installazione. Abilita+avvia, poi reload-or-restart.
+if nginx -t >/dev/null 2>&1; then
+  systemctl enable nginx >/dev/null 2>&1 || true
+  systemctl reload-or-restart nginx >/dev/null 2>&1 || systemctl restart nginx
+else
+  echo "ATTENZIONE: configurazione nginx non valida (nginx -t). Verifica /etc/nginx."
+fi
 systemctl daemon-reload
 systemctl enable --now sentinelcore >/dev/null 2>&1
 
@@ -174,16 +203,45 @@ if [ "$HEALTH" = "200" ]; then
   JAR="$(mktemp)"
   curl -s -c "$JAR" http://127.0.0.1:8080/api/health >/dev/null 2>&1
   CSRF="$(awk '/XSRF-TOKEN/{print $7}' "$JAR" 2>/dev/null)"
-  curl -s -b "$JAR" -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
-    -X POST http://127.0.0.1:8080/api/auth/register \
-    -d "{\"username\":\"$ADMIN_USER\",\"email\":\"admin@local\",\"password\":\"$ADMIN_PASS\",\"skip_email_verification\":true}" \
-    >/dev/null 2>&1
+  # Corpo su stdin: sulla riga di comando la password sarebbe visibile in ps.
+  REG_CODE="$(printf '{"username":"%s","email":"admin@local","password":"%s","skip_email_verification":true}' \
+      "$ADMIN_USER" "$ADMIN_PASS" \
+    | curl -s -o /dev/null -w '%{http_code}' -b "$JAR" -H "X-CSRF-Token: $CSRF" \
+      -H 'Content-Type: application/json' -X POST --data-binary @- \
+      http://127.0.0.1:8080/api/auth/register 2>/dev/null)"
   PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -q \
     -c "UPDATE users SET role='admin' WHERE username='$ADMIN_USER';" >/dev/null 2>&1
   ROLE="$(PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -tAc \
         "SELECT role FROM users WHERE username='$ADMIN_USER'" 2>/dev/null)"
-  [ "$ROLE" = "admin" ] && ADMIN_OK=1
+  # Con --force l'utente puo' esistere gia': la password generata vale solo
+  # se la registrazione e' andata a buon fine.
+  [ "$ROLE" = "admin" ] && [ "${REG_CODE:0:1}" = "2" ] && ADMIN_OK=1
   rm -f "$JAR"
+fi
+
+# Le credenziali admin vanno in un file solo root e mai a schermo: sotto apt
+# l'output finisce in /var/log/apt/term.log. Il timer cancella il file appena
+# la password viene cambiata. Lo script sta fuori da $BASE, che e' dell'utente
+# di servizio, perche' il timer lo esegue come root.
+CREDS_DIR=/etc/sentinelsuite/sentinelcore
+CREDS_TOOL=/usr/local/lib/sentinelsuite/initial-credentials.sh
+CREDS_SAVED=0
+if [ "$ADMIN_OK" = "1" ]; then
+  install -D -m 0755 -o root -g root "$PKG_DIR/templates/initial-credentials.sh" "$CREDS_TOOL"
+  install -m 0644 "$PKG_DIR/templates/sentinelcore-initial-credentials.service" \
+    "$PKG_DIR/templates/sentinelcore-initial-credentials.timer" /etc/systemd/system/
+  if printf '%s\n' "$ADMIN_PASS" | "$CREDS_TOOL" save \
+      "$CREDS_DIR" "$DB_NAME" users password_hash "$ADMIN_USER"; then
+    systemctl daemon-reload
+    systemctl enable --now sentinelcore-initial-credentials.timer >/dev/null 2>&1
+    CREDS_SAVED=1
+  else
+    # Senza file la password generata non la conosce nessuno: meglio togliere
+    # l'utente e far creare l'admin a mano come da INSTALL.md.
+    PGPASSWORD="$DB_PASSWORD" psql -h 127.0.0.1 -U "$DB_USER" -d "$DB_NAME" -q \
+      -c "DELETE FROM users WHERE username='$ADMIN_USER';" >/dev/null 2>&1
+    ADMIN_OK=0
+  fi
 fi
 
 # ── summary ─────────────────────────────────────────────────────────────────
@@ -199,10 +257,12 @@ cat <<EOF
    Servizio:   systemctl status sentinelcore
    Config:     $APP/config/production.yaml  (segreti generati, chmod 600)
 EOF
-if [ "$ADMIN_OK" = "1" ]; then
+if [ "$CREDS_SAVED" = "1" ]; then
   cat <<EOF
-   Admin:      $ADMIN_USER  /  $ADMIN_PASS
-               ⚠️  CAMBIA questa password al primo accesso.
+   Admin:      utente $ADMIN_USER, password in $CREDS_DIR/initial-credentials
+               (sudo cat ...: leggibile solo da root, mai stampata a schermo)
+               ⚠️  CAMBIA la password al primo accesso: il file si
+               cancella da solo pochi minuti dopo.
 EOF
 else
   cat <<EOF

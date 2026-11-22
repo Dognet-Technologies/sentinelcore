@@ -2,7 +2,31 @@
 
 Distribuzione dei **build già compilati** (niente sorgenti, niente toolchain sul target).
 
-## Costruire il pacchetto (su un build host con `cargo` + node 20)
+## Release ufficiali (automatiche)
+
+Le release ufficiali **non si caricano a mano**: le produce `.github/workflows/release.yml`.
+
+1. Allinea la versione in `vulnerability-manager/Cargo.toml` (+ `Cargo.lock`) e `vulnerability-manager-frontend/package.json` (+ `package-lock.json`), fai passare la CI sul commit.
+2. Crea e pusha il tag: `git tag v1.2.1 && git push origin v1.2.1` (suffissi ammessi: `-rc.0`, `-beta`… → release marcata *pre-release*).
+3. La action verifica (tag = versioni nel codice, CI verde sul commit, secrets presenti), compila, costruisce tarball + VM qcow2/OVA, firma `SHA256SUMS` e crea una **bozza** di release. Controllala e pubblicala da GitHub → Releases.
+
+Se un job fallisce: *Re-run failed jobs* dall'interfaccia Actions (gli artifact già prodotti vengono riusati).
+Controllo locale del gate: `packaging/check-version.sh v1.2.1`.
+
+Secrets del repo richiesti: `GPG_PRIVATE_KEY` (chiave privata ASCII-armored) e `GPG_PASSPHRASE`.
+
+### Verificare gli asset scaricati
+
+```bash
+gpg --import sentinelcore-release.pub.asc
+gpg --fingerprint                         # confronta con l'impronta nelle note della release
+gpg --verify SHA256SUMS.asc SHA256SUMS    # firma dei checksum
+sha256sum -c SHA256SUMS --ignore-missing  # integrità degli asset scaricati
+```
+
+## Costruire il pacchetto a mano (su un build host con `cargo` + node 20)
+
+Solo per test locali: i pacchetti ufficiali vengono dalla CI.
 
 ```bash
 packaging/build-release.sh            # versione = git describe (es. v1.0.1-beta)
@@ -23,7 +47,7 @@ sudo ./install.sh                       # rileva IP/NIC, genera i segreti
 sudo ./install.sh --server-name 10.0.0.5 --iface ens18
 ```
 
-`install.sh` installa solo i **runtime** (PostgreSQL, nginx, nmap, arp-scan), crea utente/DB con **password generata**, applica le migration, scrive `production.yaml` con **JWT secret per-istanza** e CORS sull'IP rilevato, genera un **certificato TLS self-signed** per-istanza e configura nginx per servire tutto in **HTTPS di default** (redirect automatico da HTTP), configura systemd, e crea un utente **admin** (credenziali stampate a fine install — da cambiare al primo accesso).
+`install.sh` installa solo i **runtime** (PostgreSQL, nginx, nmap, arp-scan), crea utente/DB con **password generata**, applica le migration, scrive `production.yaml` con **JWT secret per-istanza** e CORS sull'IP rilevato, genera un **certificato TLS self-signed** per-istanza e configura nginx per servire tutto in **HTTPS di default** (redirect automatico da HTTP), configura systemd, e crea un utente **admin**. La sua password non viene stampata, perché con il `.deb` l'output finisce in `/var/log/apt/term.log`: è in `/etc/sentinelsuite/sentinelcore/initial-credentials`, leggibile solo da root, e il file si cancella da solo pochi minuti dopo il cambio password, da fare al primo accesso.
 
 Per esporre l'istanza su internet con un dominio reale e un certificato Let's Encrypt/certbot al posto del self-signed, vedi [`HTTPS.md`](HTTPS.md).
 

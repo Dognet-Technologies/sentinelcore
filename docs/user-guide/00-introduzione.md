@@ -21,25 +21,55 @@ Questo manuale è pensato per due tipi di lettori:
 
 Non è richiesta alcuna conoscenza di programmazione: SentinelCore si installa da pacchetti pronti e si usa interamente da interfaccia web.
 
+## Novità della versione 2.0.0
+
+Rispetto alla 1.2.0, la 2.0.0 porta soprattutto questi cambiamenti (i dettagli sono nei capitoli indicati):
+
+- **Mappa di rete rinnovata** — selezione a riquadro, spostamento di gruppi di host, zoom e scorrimento, linee personalizzabili (forma, colore, TAG, animazione), collegamenti scoperti dagli scanner animati, sottoreti raccolte in riquadri comprimibili, viste gerarchica e circolare raggruppate per sottorete (capitolo 7).
+- **Dashboard interattiva** — ogni colonna del grafico "Vulnerability Trend" apre il dettaglio di quel giorno, con grafico per severity e collegamenti a vulnerabilità e host (capitolo 6).
+- **Punteggio di rischio più chiaro sugli host** — la scheda "Input del risk score" mostra solo i dati che entrano davvero nel calcolo, con i punti che ciascuno porta; i campi doppi sono stati unificati (capitolo 7).
+- **Piani di remediation precisi** — un piano è ora l'elenco delle **vulnerabilità** scelte, non degli host interi: si cercano con criteri combinabili (rete/CIDR, tipo di host, team, esposizione, rischio, gravità, KEV, CVE, testo), si aggiungono una per una, tutte insieme o "tutte quelle dell'asset / di rischio X", e le vulnerabilità nuove su un host del piano non ci entrano da sole. Chiusura automatica immediata del piano. È il cambiamento che porta la versione a 2.0.0 (capitolo 9).
+- **Dettagli CISA KEV e NVD** — la pagina di una vulnerabilità mostra i dati del catalogo KEV (prodotto, scadenza, azione richiesta, uso ransomware) e l'esito dell'arricchimento NVD, con gli eventi relativi in timeline; gli amministratori possono avviare a mano i due aggiornamenti dalla barra della tabella (capitolo 6).
+- **Cloni dell'host in testing e pre-produzione** — nella pagina dell'host si dichiara dove vive una copia, con rete e flag "allineato alla produzione" (capitolo 7).
+- **Tabelle più utili** — il tasto **Colonne** sceglie le colonne visibili (e la scelta resta); date e ore in formato europeo ovunque (capitolo 2).
+- **Commenti più ricchi** — risposte a qualsiasi livello e autocompletamento delle menzioni `@utente` (capitolo 6).
+- **Aggiornamento in tempo reale** — liste, notifiche e dashboard si aggiornano da sole, senza ricaricare la pagina.
+- **Sicurezza** — revoca delle sessioni, limite ai tentativi di accesso, codici 2FA non riutilizzabili, scansioni di rete eseguite da un componente privilegiato con elenco di opzioni consentite (capitolo 4).
+- **Temi con contrasto verificato** — tutti gli 11 temi rispettano i livelli di leggibilità WCAG AA per testi e colori di gravità (capitolo 4).
+- **Release firmate** — i pacchetti e le immagini VM sono accompagnati da checksum e firma verificabili (capitolo 1).
+
+## Edizioni: Community e Pro
+
+SentinelCore è distribuito in due edizioni che condividono lo stesso codice di base e la stessa interfaccia:
+
+- **Community** — gratuita e open source (licenza AGPL). Include l'intero flusso operativo (scoperta, importazione, punteggio di rischio, assegnazione, piani di remediation, report) ed è limitata a **15 host** gestiti.
+- **Pro** — a licenza. Alza il tetto degli host a scaglioni (il primo porta a 45 host complessivi — 15 per ambiente — poi 135, 405 e oltre) e aggiunge alcune funzioni esclusive, segnalate in questo manuale con l'etichetta **(Pro)**:
+  - la **minimappa** della mappa di topologia, comoda sulle reti grandi;
+  - **limiti e conteggio per ambiente** — produzione, testing e pre-produzione contati separatamente — con l'**ambiente che modula il punteggio di rischio**: lo stesso problema pesa di più in produzione che in testing.
+
+  Una sola licenza vale per **tutta la suite SentinelSuite** (SentinelCore Pro e CyberShepherd), con gli stessi limiti di asset.
+
+In alto a sinistra l'interfaccia indica sempre l'**edizione in uso** (`SentinelCore COMMUNITY` o `SentinelCore PRO`) e il numero di versione. Questo manuale descrive l'edizione **Community**: dove una funzione richiede la licenza lo trovi scritto **(Pro)**.
+
 ## Cosa fa SentinelCore
 
-- **Network Discovery** — scansione di rete integrata (basata su nmap) con profili configurabili, pianificazione ricorrente e mappa di topologia degli host scoperti.
+- **Network Discovery** — scansione di rete integrata (basata su nmap) con profili configurabili, pianificazione ricorrente e mappa di topologia interattiva degli host scoperti.
 - **Importazione da scanner esterni** — legge i risultati di 10 scanner di terze parti (Qualys, Nessus, Burp Suite, OpenVAS/GVM, Nexpose/InsightVM, OWASP ZAP, Nmap, Nikto, Trivy, Grype), normalizza la severità, deduplica i risultati e li collega agli asset.
-- **Connettore OpenVAS diretto** — un connettore integrato interroga periodicamente un'istanza GVM/OpenVAS e importa automaticamente i report completati, senza bisogno di esportare file a mano.
+- **Connettori OpenVAS e Nessus diretti** — connettori integrati interrogano periodicamente un'istanza GVM/OpenVAS o Tenable Nessus (Essentials o Professional, release certificata 10.12.x) e importano automaticamente i report completati, senza bisogno di esportare file a mano.
 - **Punteggio di rischio** — un punteggio composito 0–100 che combina CVSS, probabilità di sfruttamento reale (EPSS), impatto di business, esposizione dell'asset e disponibilità di exploit noti, con override automatici per zero-day, CVE sfruttate da ransomware e vulnerabilità attivamente sfruttate (catalogo CISA KEV).
 - **SLA e scadenze** — ogni livello di rischio ha una scadenza di rimedio (Critical 1 giorno, High 7 giorni, Medium 30 giorni, Low 90 giorni); il sistema segnala automaticamente gli sforamenti.
 - **Assegnazione** — manuale (a team o utente) oppure automatica tramite regole basate su competenze (skill) e bilanciamento del carico.
-- **Piani di remediation** — raggruppano vulnerabilità e dispositivi in piani eseguibili, con stato di avanzamento, commenti e verifica finale.
-- **Collaborazione** — commenti con menzioni (`@utente`), notifiche in-app, classifiche di risoluzione per utenti e team.
+- **Piani di remediation** — ordini di lavoro che raggruppano vulnerabilità scelte con precisione in piani eseguibili, con stato di avanzamento calcolato sulle vulnerabilità realmente risolte, chiusura automatica al 100%, commenti e verifica finale.
+- **Collaborazione** — commenti a thread con menzioni (`@utente`, con autocompletamento), notifiche in-app, classifiche di risoluzione per utenti e team. Le liste e le notifiche si aggiornano in tempo reale.
 - **Notifiche** — motore di regole (condizioni, priorità, throttling, orari di silenzio) che invia avvisi via email, Slack e Telegram.
 - **Integrazioni** — sincronizzazione bidirezionale con JIRA, arricchimento CVE da NVD, aggiornamento giornaliero EPSS, webhook SOAR in uscita.
 - **Reportistica** — report di vulnerabilità (PDF/CSV/JSON/XML), report di gestione, dashboard esecutiva, mappe di calore tecniche.
-- **Sicurezza e audit** — autenticazione con cookie httpOnly, protezione CSRF, autenticazione a due fattori (TOTP), gestione sessioni con revoca da remoto, log di audit completo, permessi granulari per utente.
+- **Sicurezza e audit** — autenticazione con cookie httpOnly, protezione CSRF, autenticazione a due fattori (TOTP) con codici non riutilizzabili, limite ai tentativi di accesso, gestione sessioni con revoca da remoto, log di audit (completo per Amministratori e Team Leader, personale per gli Utenti), permessi granulari per utente.
 - **Server MCP** — un'interfaccia programmatica (Model Context Protocol) che permette ad agenti AI autorizzati di consultare e, se abilitato, agire su vulnerabilità e rischio — vedi il capitolo dedicato alla configurazione.
 
 ## Cosa NON fa (per evitare aspettative sbagliate)
 
-- **Non è uno scanner di vulnerabilità** in senso stretto: a parte la scoperta di rete/porte basata su nmap, SentinelCore non rileva da solo le vulnerabilità — le riceve da scanner esterni o dal connettore OpenVAS.
+- **Non è uno scanner di vulnerabilità** in senso stretto: a parte la scoperta di rete/porte basata su nmap, SentinelCore non rileva da solo le vulnerabilità — le riceve da scanner esterni o dai connettori OpenVAS e Nessus.
 - **Non è multi-tenant**: un'installazione serve un'unica organizzazione.
 - **Non ha alta affidabilità/clustering integrati**: è pensato per un singolo host con un'istanza PostgreSQL.
 - **Non richiede né installa agenti** sugli endpoint monitorati: la visibilità viene dalle scansioni di rete e dai dati importati dagli scanner.
@@ -57,6 +87,6 @@ Non è richiesta alcuna conoscenza di programmazione: SentinelCore si installa d
 | [5 — Team e utenti](05-team-e-utenti.md) | Creare team, aggiungere membri, gestire utenti e competenze |
 | [6 — Vulnerabilità e rischio](06-vulnerabilita-e-rischio.md) | Dashboard, elenco vulnerabilità, punteggio di rischio, stati, assegnazione |
 | [7 — Rete e asset](07-rete-e-asset.md) | Scansione di rete, topologia, gestione host |
-| [8 — Scanner e integrazioni](08-scanner-e-integrazioni.md) | Importazione da scanner esterni, connettore OpenVAS, JIRA, notifiche |
+| [8 — Scanner e integrazioni](08-scanner-e-integrazioni.md) | Importazione da scanner esterni, connettori OpenVAS e Nessus, JIRA, notifiche |
 | [9 — Report e piani di remediation](09-report-e-remediation.md) | Generare report, cronologia, piani di remediation, carico di lavoro |
 | [10 — Domande frequenti](10-domande-frequenti.md) | Problemi comuni e loro soluzione |

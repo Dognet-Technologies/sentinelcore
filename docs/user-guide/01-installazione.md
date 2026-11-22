@@ -72,10 +72,10 @@ Da qui in poi l'appliance si comporta come un'installazione normale: ad ogni ria
 
 ### Passi
 
-1. Scarica il pacchetto (`sentinelcore-<versione>-linux-x86_64.tar.gz`) e verificane l'integrità, se disponi del checksum:
+1. Scarica il pacchetto (`sentinelcore-<versione>-linux-x86_64.tar.gz`) e verificane l'integrità e la provenienza, come descritto nella sezione *Verificare i file scaricati* qui sotto:
 
    ```bash
-   sha256sum -c sentinelcore-<versione>-linux-x86_64.tar.gz.sha256
+   sha256sum -c SHA256SUMS --ignore-missing
    ```
 
 2. Estrai ed esegui l'installer:
@@ -106,9 +106,52 @@ Da qui in poi l'appliance si comporta come un'installazione normale: ad ogni ria
 
 ---
 
+## Verificare i file scaricati
+
+Dalla versione 2.0.0 ogni release è costruita e firmata in modo automatico, e per ogni versione trovi accanto ai file (pacchetto `.tar.gz`, immagini `.ova` e `.qcow2`):
+
+| File | A cosa serve |
+|---|---|
+| `SHA256SUMS` | l'elenco dei checksum di tutti i file della release |
+| `SHA256SUMS.asc` | la firma di quell'elenco |
+| `sentinelcore-<versione>-linux-x86_64.tar.gz.asc` | la firma del solo pacchetto binario |
+| `sentinelcore-release.pub.asc` | la chiave pubblica con cui verificare le firme |
+
+Per controllare che i file siano autentici e non alterati:
+
+```bash
+gpg --import sentinelcore-release.pub.asc
+gpg --fingerprint security@dognet.tech
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum -c SHA256SUMS --ignore-missing
+```
+
+L'impronta mostrata dal secondo comando deve essere esattamente `18B5 A69F 9767 84E2 5BF2 91F1 8CAD B9F7 D59F 68A1`: se è diversa, non usare i file. Il terzo comando deve dire `Good signature`, il quarto `OK` per ciascun file scaricato.
+
+---
+
 ## Aggiornare un'installazione esistente
 
-Per passare da una versione di SentinelCore alla successiva **senza perdere dati**, usa lo script `upgrade.sh` incluso in ogni nuovo pacchetto binario (funziona allo stesso modo sia per un'installazione da pacchetto, sia per un'appliance VM, sia per un'immagine qcow2):
+Un aggiornamento **non perde dati**: qualunque metodo usi, parte sempre con un backup del database. Vale allo stesso modo per un'installazione da pacchetto, un'appliance VM o un'immagine qcow2, e per le edizioni **Community** e **Pro**.
+
+### Metodo consigliato: pacchetto `.deb`
+
+Il modo principale, sia per la Community sia per la Pro, è il pacchetto `.deb` scaricato dalla piattaforma SentinelSuite:
+
+```bash
+# Community
+sudo apt install ./sentinelcore_<nuova-versione>_amd64.deb
+# Pro
+sudo apt install ./sentinelcore-pro_<nuova-versione>_amd64.deb
+```
+
+Usa `apt` (non `dpkg -i`), così vengono installate anche le eventuali dipendenze. Il pacchetto riconosce da solo se è un primo install o un aggiornamento ed esegue `upgrade.sh`. Il vantaggio è che il sistema tiene traccia della versione installata: gli aggiornamenti successivi restano puliti.
+
+> Una volta su `.deb`, continua con il `.deb`. Aggiornare a mano con il tarball (sotto) un'istanza installata da pacchetto lascia la versione registrata dal sistema disallineata.
+
+### Alternativa documentata: tarball + `upgrade.sh`
+
+In alternativa, per installazioni non gestite da pacchetto, c'è il tarball di release con lo script `upgrade.sh`:
 
 ```bash
 tar xzf sentinelcore-<nuova-versione>-linux-x86_64.tar.gz
@@ -116,7 +159,9 @@ cd sentinelcore-<nuova-versione>-linux-x86_64
 sudo ./upgrade.sh
 ```
 
-Lo script esegue in automatico, in quest'ordine:
+Un'installazione partita da tarball può passare in qualsiasi momento al `.deb`: il pacchetto rileva l'app esistente e la aggiorna in-place.
+
+Con entrambi i metodi lo script esegue in automatico, in quest'ordine:
 
 1. **Backup del database** (prima di qualsiasi modifica — se questo passo fallisce, l'aggiornamento si ferma e non viene applicato nulla);
 2. arresto del servizio;
