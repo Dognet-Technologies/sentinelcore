@@ -122,7 +122,11 @@ write_files:
       export HTTP_BASE="http://10.0.2.2:${HTTP_PORT}"
 runcmd:
   - 'wget -q "http://10.0.2.2:${HTTP_PORT}/packaging/appliance/provision.sh" -O /tmp/provision.sh && chmod +x /tmp/provision.sh'
-  - 'bash -c ". /tmp/build-env.sh && /tmp/provision.sh" > /var/log/sentinelcore-provision.log 2>&1'
+  # Output anche sulla console seriale (finisce in dist/build-vm-console.log):
+  # prima un errore di provisioning restava nel disco della VM, che viene
+  # cancellato. Se fallisce, marcatore e spegnimento subito, invece di
+  # aspettare BUILD_TIMEOUT.
+  - 'bash -c "set -o pipefail; . /tmp/build-env.sh && /tmp/provision.sh 2>&1 | tee /var/log/sentinelcore-provision.log /dev/ttyS0" || { echo "SENTINELCORE_PROVISION_FAILED" > /dev/ttyS0; sync; poweroff -f; }'
 CLOUDINIT
 
 case "$ISO_CMD" in
@@ -172,6 +176,11 @@ echo " fatto"
 
 # Copia log di provisioning per debug
 cp "$WORK_DIR/qemu-console.log" "$OUT/build-vm-console.log" 2>/dev/null || true
+if grep -q "SENTINELCORE_PROVISION_FAILED" "$OUT/build-vm-console.log" 2>/dev/null; then
+    echo "Ultime righe del provisioning:"
+    grep -a "provision\|ERRORE\|Error\|error" "$OUT/build-vm-console.log" | tail -20 || true
+    die "Provisioning fallito. Log completo: $OUT/build-vm-console.log"
+fi
 
 # ── 5. qcow2 compresso ──────────────────────────────────────────────────────
 log "5/7  Compressione immagine qcow2"
