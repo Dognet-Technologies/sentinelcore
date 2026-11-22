@@ -194,7 +194,13 @@ log "5/6 Applicazione migration (--migrate)"
 # questi due, il binario non trova production.yaml e ricade sul default di
 # sviluppo (DB sbagliato) — la migration fallisce, ma su un URL diverso da
 # quello vero.
-(cd "$APP" && sudo -u "$SVC_USER" env APP_ENV=production "$APP/vulnerability-manager" --migrate) || rollback
+# --baseline-from: un'istanza installata senza tracciamento (install.sh fino
+# alla 2.2.0 applicava le migration con psql senza registrarle) viene prima
+# allineata alle migration che aveva davvero, cioe' la copia di rollback;
+# poi si applicano solo quelle nuove. Senza, sqlx le rieseguiva tutte dalla
+# prima e la 142 falliva ("calculate_risk_score ... non e' unica").
+(cd "$APP" && sudo -u "$SVC_USER" env APP_ENV=production "$APP/vulnerability-manager" \
+    --migrate --baseline-from "$ROLLBACK_DIR/migrations") || rollback
 rm -rf "$ROLLBACK_DIR"
 
 # ── 6. Riavvia e verifica ────────────────────────────────────────────────────
