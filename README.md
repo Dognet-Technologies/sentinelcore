@@ -16,7 +16,7 @@ Track. Prioritize. Remediate. — across every asset on your network, with the a
 
 </div>
 
-> **Stability disclaimer.** SentinelCore is in **beta**. Core flows are stable on a single-host deployment with a dedicated PostgreSQL instance. Multi-tenant, HA, and containerized deployments are not yet supported. Use the issue tracker for production blockers.
+> **Stability disclaimer.** SentinelCore is now *Stable*. Core flows are stable on a single-host deployment with a dedicated PostgreSQL instance. Multi-tenant, HA, and containerized deployments are not yet supported. Use the issue tracker for production blockers.
 
 ---
 
