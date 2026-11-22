@@ -41,6 +41,7 @@ Available in the weekly build, not yet published as a release.
 - **Nessus Essentials without exports** — Essentials Free refuses API exports, so the connector reads the same data (CVE, CWE, CVSS, solution, port, output) from the host and plugin detail endpoints. Professional keeps using `.nessus` exports and falls back automatically if an export is refused.
 - **Edition in the import history** — *Scanner imports* shows the detected edition (*Nessus Essentials*, *Nessus Professional*, ...) in the Scanner column (migration 163, `scanner_imports.scanner_label`).
 - **Sync now** — OpenVAS and Nessus can run an import immediately from their configuration dialog (`POST /api/plugins/:id/sync`, admin only), sharing a per-plugin lock with the background poller.
+- **OpenVAS/GVM connector prerequisites** — the connector drives `gvm-cli` (from *gvm-tools*), which must be installed on the SentinelCore host (on Debian 13: `sudo python3 -m pip install gvm-tools --break-system-packages`), and needs GVM to expose **GMP over TCP+TLS, typically port 9390** — *not* the web UI port (9392/443), which speaks HTTP and fails a TLS/GMP probe with `WRONG_VERSION_NUMBER`. Recent GVM (incl. the Greenbone Community containers) keeps `gvmd` on a local unix socket only; expose GMP with a `socat` TLS relay to that socket. Full step-by-step setup (self-signed cert, socat container, `get_version` check) is in the user manual, *Scanner e integrazioni → Connettore OpenVAS diretto*.
 
 **Notifications**
 
