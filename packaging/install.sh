@@ -164,6 +164,13 @@ chmod 644 "$TLS_DIR/sentinelcore.crt"
 # ── 8. systemd + nginx ──────────────────────────────────────────────────────
 log "8/9 systemd + nginx"
 chown -R "$SVC_USER:$SVC_USER" "$BASE" "$LOGDIR"
+# Registra in _sqlx_migrations le migration appena applicate con psql: senza,
+# al primo aggiornamento `--migrate` le rieseguiva tutte dalla prima (e la 142
+# falliva). Non bloccante: l'aggiornamento farebbe comunque l'allineamento.
+if ! (cd "$APP" && sudo -u "$SVC_USER" env APP_ENV=production "$APP/vulnerability-manager" \
+        --migrate --baseline-from "$APP/migrations" >/dev/null); then
+  echo "ATTENZIONE: registrazione delle migration non riuscita; verra' fatta al prossimo aggiornamento." >&2
+fi
 install -m 0644 "$PKG_DIR/templates/sentinelcore.service" /etc/systemd/system/sentinelcore.service
 install -m 0644 "$PKG_DIR/templates/nginx-sentinelcore.conf" /etc/nginx/sites-available/sentinelcore
 ln -sf /etc/nginx/sites-available/sentinelcore /etc/nginx/sites-enabled/sentinelcore
