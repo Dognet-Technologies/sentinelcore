@@ -42,9 +42,8 @@ jobs:
     
       - name: Setup Rust (rustup)
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.88.0
           . $HOME/.cargo/env
-          rustup default stable
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -64,7 +63,10 @@ jobs:
       - name: Install sqlx-cli
         run: |
           . $HOME/.cargo/env
-          cargo install sqlx-cli --no-default-features --features rustls,postgres --version 0.7.4 || true
+          # Stessa versione di sqlx del progetto (Cargo.lock) e dipendenze bloccate:
+          # la 0.7.4 non compila piu' con Rust stabile recente, e il vecchio
+          # `|| true` nascondeva l'errore (poi "sqlx: command not found").
+          cargo install sqlx-cli --no-default-features --features rustls,postgres --version 0.8.6 --locked
 
       - name: Wait for Postgres
         run: |

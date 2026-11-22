@@ -99,7 +99,7 @@ jobs:
 
       - name: Setup Rust
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.88.0
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
       - name: Setup Node.js
